@@ -42,9 +42,10 @@ namespace Lean81
                             {
                                 if (++ticks > 80) throw new InvalidOperationException("GUI scan timed out.");
                                 if (!form.SmokeReady) return;
-                                if (page < 8) { form.SmokePage(page); form.Refresh(); form.SaveScreenshot(Path.Combine(output, "page-" + page + ".png")); page++; }
-                                else if (page == 8) { form.ClientSize = new System.Drawing.Size(980, 620); form.SmokePage(2); form.Refresh(); form.SaveScreenshot(Path.Combine(output, "small-window.png")); page++; }
-                                else { timer.Stop(); File.WriteAllText(Path.Combine(output, "gui-smoke.txt"), "PASS: 8 pages and small window rendered in synthetic demo mode."); form.Close(); }
+                                if (page < 8) { form.SmokePage(page); form.Refresh(); form.ValidateSmokeLayout(); form.SaveScreenshot(Path.Combine(output, "page-" + page + ".png")); page++; }
+                                else if (page == 8) { timer.Stop(); form.SmokeReviewScreenshot(Path.Combine(output, "review-dialog.png")); page++; timer.Start(); }
+                                else if (page == 9) { form.ClientSize = new System.Drawing.Size(980, 620); form.SmokePage(2); form.Refresh(); form.ValidateSmokeLayout(); form.SaveScreenshot(Path.Combine(output, "small-window.png")); page++; }
+                                else { timer.Stop(); File.WriteAllText(Path.Combine(output, "gui-smoke.txt"), "PASS: 8 pages, cancelled review dialog and small window rendered with layout checks in synthetic demo mode."); form.Close(); }
                             }
                             catch (Exception ex) { smokeError = ex; timer.Stop(); form.Close(); }
                         };

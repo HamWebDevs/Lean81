@@ -43,6 +43,7 @@ namespace Lean81
         readonly Panel content = new Panel(), sidebar = new Panel();
         readonly Label status = new Label(); readonly List<Button> navigation = new List<Button>();
         readonly Button review = new Button();
+        TableLayoutPanel pageLayout;
         ScanReport report; int page; bool busy; CancellationTokenSource captureCancel;
         CaptureResult capture; CpuChart chart; Label captureStats;
         static readonly string[] Pages = { "Overview", "Usage profile", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "CPU capture", "Recovery" };
@@ -54,9 +55,10 @@ namespace Lean81
             ClientSize = new Size(1080, 700); MinimumSize = new Size(980, 620); StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.Dpi;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
-            var footer = new Panel { Dock = DockStyle.Bottom, Height = 56, BackColor = Color.White, Padding = new Padding(20, 10, 20, 10) };
-            review.Text = "Review changes (0)"; review.Dock = DockStyle.Right; review.Width = 185; StyleButton(review, true); review.Click += async (s, e) => await ReviewChanges(); footer.Controls.Add(review);
-            status.Text = demo ? "Demo workspace · no system changes" : "Ready · scan to inspect this laptop"; status.Dock = DockStyle.Fill; status.TextAlign = ContentAlignment.MiddleLeft; status.ForeColor = Muted; footer.Controls.Add(status);
+            var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = Color.White, Padding = new Padding(16, 10, 16, 10), Margin = Padding.Empty };
+            footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 185));
+            review.Text = "Review changes (0)"; review.Dock = DockStyle.Fill; review.Margin = Padding.Empty; StyleButton(review, true); review.Click += async (s, e) => await ReviewChanges(); footer.Controls.Add(review, 1, 0);
+            status.Text = demo ? "Demo workspace · no system changes" : "Ready · scan to inspect this laptop"; status.Dock = DockStyle.Fill; status.AutoEllipsis = true; status.TextAlign = ContentAlignment.MiddleLeft; status.ForeColor = Muted; footer.Controls.Add(status, 0, 0);
             content.Dock = DockStyle.Fill; content.Padding = new Padding(28, 22, 28, 18); content.AutoScroll = true;
             sidebar.Dock = DockStyle.Left; sidebar.Width = 196; sidebar.BackColor = Ink;
             var brand = new Label { Text = "Lean81", Font = new Font("Segoe UI", 25, FontStyle.Bold), ForeColor = Color.White, Bounds = new Rectangle(21, 21, 166, 49) }; sidebar.Controls.Add(brand);
@@ -67,7 +69,11 @@ namespace Lean81
                 button.FlatAppearance.BorderSize = 0; button.Click += (s, e) => ShowPage(target); navigation.Add(button); sidebar.Controls.Add(button);
             }
             var mode = new Label { Text = demo ? "SYNTHETIC DEMO\nNo system writes" : backend.IsAdministrator ? "ADMINISTRATOR\nChanges enabled" : "INSPECTION MODE\nNo admin needed to scan", ForeColor = Color.FromArgb(162, 184, 198), AutoSize = false, Height = 55, Dock = DockStyle.Bottom, Padding = new Padding(24, 4, 8, 6) }; sidebar.Controls.Add(mode);
-            Controls.Add(content); Controls.Add(sidebar); Controls.Add(footer); footer.BringToFront();
+            var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = Padding.Empty, Padding = Padding.Empty };
+            shell.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 196)); shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+            sidebar.Dock = DockStyle.Fill; sidebar.Margin = Padding.Empty; content.Margin = Padding.Empty;
+            shell.Controls.Add(sidebar, 0, 0); shell.SetRowSpan(sidebar, 2); shell.Controls.Add(content, 1, 0); shell.Controls.Add(footer, 1, 1); Controls.Add(shell);
             FormClosing += (s, e) => { if (busy) { e.Cancel = true; if (captureCancel != null) captureCancel.Cancel(); status.Text = "Finishing the current operation before closing…"; } };
             Shown += async (s, e) => await Scan(); ShowPage(0);
         }
@@ -87,14 +93,28 @@ namespace Lean81
         {
             var sub = LabelAt(subtitle, 10); sub.Height = 48; sub.Padding = new Padding(0, 3, 0, 0);
             var heading = LabelAt(title, 24, FontStyle.Bold); heading.Height = 48;
-            content.Controls.Add(sub); content.Controls.Add(heading);
+            pageLayout.Controls.Add(heading, 0, 0); pageLayout.Controls.Add(sub, 0, 1);
         }
-        void Body(Control control) { control.Dock = DockStyle.Fill; content.Controls.Add(control); control.SendToBack(); }
+        void Body(Control control) { control.Dock = DockStyle.Fill; control.Margin = Padding.Empty; pageLayout.Controls.Add(control, 0, 2); }
+        static void Rows(Panel host, Control[] controls, params float[] heights)
+        {
+            var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = controls.Length, Margin = Padding.Empty, Padding = Padding.Empty };
+            table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            for (int i = 0; i < controls.Length; i++)
+            {
+                table.RowStyles.Add(new RowStyle(heights[i] < 0 ? SizeType.Percent : SizeType.Absolute, heights[i] < 0 ? 100 : heights[i]));
+                controls[i].Dock = DockStyle.Fill; controls[i].Margin = Padding.Empty;
+                table.Controls.Add(controls[i], 0, i);
+            }
+            host.Controls.Add(table);
+        }
         void ShowPage(int index)
         {
             page = index;
             foreach (Control child in content.Controls.Cast<Control>().ToArray()) child.Dispose();
             content.Controls.Clear(); chart = null; captureStats = null;
+            pageLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Margin = Padding.Empty };
+            pageLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); content.Controls.Add(pageLayout);
             for (int i = 0; i < navigation.Count; i++) { navigation[i].BackColor = i == page ? Color.FromArgb(44, 68, 85) : Ink; navigation[i].ForeColor = i == page ? Color.White : Color.FromArgb(202, 215, 224); }
             if (index == 0) Overview(); else if (index == 1) Profile(); else if (index >= 2 && index <= 4) Inventory(index == 2 ? "startup" : index == 3 ? "task" : "service"); else if (index == 5) Apps(); else if (index == 6) CapturePage(); else Recovery();
             UpdateSelection();
@@ -102,6 +122,7 @@ namespace Lean81
         void SetBusy(bool value, string message)
         {
             busy = value; foreach (var nav in navigation) nav.Enabled = !value;
+            content.Enabled = !value || captureCancel != null;
             review.Enabled = !value && selected.Count > 0; status.Text = message;
         }
         async Task Scan()
@@ -134,7 +155,7 @@ namespace Lean81
                 var foot = LabelAt("Found in this scan", 9); foot.Dock = DockStyle.Bottom; foot.Height = 22;
                 card.Controls.Add(number); card.Controls.Add(caption); card.Controls.Add(foot); cards.Controls.Add(card, i, 0);
             }
-            body.Controls.Add(cards); cards.BringToFront();
+            Rows(body, new Control[] { cards, notes, next, buttons }, 124, -1, 153, 52);
         }
         void Profile()
         {
@@ -151,6 +172,7 @@ namespace Lean81
                 check.CheckedChanged += (s, e) => { switch (n) { case 0: profile.Printing = check.Checked; break; case 1: profile.Bluetooth = check.Checked; break; case 2: profile.IndexedSearch = check.Checked; break; case 3: profile.TouchKeyboard = check.Checked; break; case 4: profile.HomeGroup = check.Checked; break; case 5: profile.MediaSharing = check.Checked; break; case 6: profile.OfflineFiles = check.Checked; break; case 7: profile.Prefetch = check.Checked; break; } selected.Clear(); UpdateSelection(); };
                 list.Controls.Add(check);
             }
+            Rows(body, new Control[] { list, actions }, -1, 48);
         }
         static DataGridView Grid()
         {
@@ -199,7 +221,7 @@ namespace Lean81
                 detail.Text = item.Before.Target + "  ·  " + item.Status + Environment.NewLine + item.Detail + Environment.NewLine + "Tradeoff: " + item.Tradeoff
                     + (item.Kind == "startup" && item.Before.Value != null ? Environment.NewLine + "Command (never executed here): " + Product.Clean(item.Before.Value, 1000) : "");
             };
-            search.TextChanged += (s, e) => populate(); body.Controls.Add(grid); grid.BringToFront(); toolbar.BringToFront(); detail.BringToFront(); populate();
+            search.TextChanged += (s, e) => populate(); Rows(body, new Control[] { toolbar, grid, detail }, 47, -1, 100); populate();
         }
         void Apps()
         {
@@ -209,7 +231,7 @@ namespace Lean81
             var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Name", "Application"); grid.Columns.Add("Publisher", "Publisher"); grid.Columns.Add("Version", "Version"); grid.Columns.Add("Note", "Review note");
             grid.Columns[0].FillWeight = 30; grid.Columns[1].FillWeight = 22; grid.Columns[2].FillWeight = 12; grid.Columns[3].FillWeight = 36;
             if (report != null) foreach (var app in report.Apps.OrderBy(a => a.Name)) grid.Rows.Add(app.Name, app.Publisher, app.Version, app.Note);
-            body.Controls.Add(grid); grid.BringToFront(); actions.BringToFront();
+            Rows(body, new Control[] { grid, actions }, -1, 48);
         }
         void CapturePage()
         {
@@ -222,7 +244,16 @@ namespace Lean81
             var export = ActionButton("Export trace…", (s, e) => ExportCapture()); export.Enabled = capture != null; actions.Controls.Add(export); body.Controls.Add(actions);
             captureStats = LabelAt("Ready to observe. Use the laptop normally during capture.", 11); captureStats.Dock = DockStyle.Top; captureStats.Height = 48; body.Controls.Add(captureStats);
             var note = LabelAt("CPU is normalized across all logical processors. Inaccessible and short-lived processes may be missed.\nExports omit process names by default and can be opened in ReclaimLab. No wake-delay measurements are collected.", 9); note.Dock = DockStyle.Bottom; note.Height = 58; body.Controls.Add(note);
-            chart = new CpuChart { Dock = DockStyle.Fill }; body.Controls.Add(chart); chart.BringToFront(); captureStats.BringToFront(); note.BringToFront(); actions.BringToFront();
+            Label peaks = null;
+            if (capture != null && capture.Samples.Count > 0)
+            {
+                var top = capture.Samples.SelectMany(s => s.processes).GroupBy(p => p.pid + "\n" + p.name).Select(g => g.OrderByDescending(p => p.cpu_pct).First()).OrderByDescending(p => p.cpu_pct).Take(3);
+                peaks = LabelAt("Highest observed process CPU\n" + String.Join("    ·    ", top.Select(p => p.name + "  " + p.cpu_pct.ToString("0.0", CultureInfo.InvariantCulture) + "%")), 10);
+                peaks.Dock = DockStyle.Bottom; peaks.Height = 58; body.Controls.Add(peaks);
+            }
+            chart = new CpuChart { Dock = DockStyle.Fill };
+            if (peaks == null) Rows(body, new Control[] { captureStats, chart, note, actions }, 48, -1, 58, 50);
+            else Rows(body, new Control[] { captureStats, chart, peaks, note, actions }, 48, -1, 58, 58, 50);
             if (capture != null) { chart.Values.AddRange(capture.Samples.Select(s => Convert.ToDouble(s.metrics["cpu_pct"] ?? 0, CultureInfo.InvariantCulture))); ShowCaptureStats(); }
             start.Tag = new Action<bool>(running => { start.Enabled = !running; stop.Enabled = running; duration.Enabled = !running; export.Enabled = !running && capture != null; });
             captureControls = (Action<bool>)start.Tag;
@@ -269,7 +300,7 @@ namespace Lean81
             if (!backend.IsAdministrator)
             {
                 var note = LabelAt("Recovery receipts are private to administrators and SYSTEM. Enable changes to read or restore them.\n\nKeep the Lean81 folder in ProgramData: it holds the original settings needed for recovery.", 11); note.Dock = DockStyle.Top; note.Height = 100; body.Controls.Add(note);
-                var enable = ActionButton("Enable changes…", (s, e) => Elevate(), true); enable.Dock = DockStyle.Bottom; body.Controls.Add(enable); return;
+                var enable = ActionButton("Enable changes…", (s, e) => Elevate(), true); Rows(body, new Control[] { note, enable }, -1, 40); return;
             }
             var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Date", "Created (UTC)"); grid.Columns.Add("Count", "Items"); grid.Columns.Add("Status", "Status"); grid.Columns.Add("Id", "Receipt"); grid.Columns[1].FillWeight = 10; grid.Columns[3].FillWeight = 38;
             var detail = new TextBox { Dock = DockStyle.Bottom, Height = 100, Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical }; body.Controls.Add(detail);
@@ -289,9 +320,9 @@ namespace Lean81
             }
             catch (Exception ex) { detail.Text = "Receipts unavailable: " + Product.Clean(ex.Message, 400); }
             grid.SelectionChanged += (s, e) => { if (grid.SelectedRows.Count == 0) return; var r = grid.SelectedRows[0].Tag as ChangeReceipt; if (r != null) detail.Text = String.Join(Environment.NewLine, r.Entries.Select(x => x.Name + " · " + x.Status + (x.Error == null ? "" : " · " + x.Error))); };
-            body.Controls.Add(grid); grid.BringToFront(); detail.BringToFront(); actions.BringToFront();
+            Rows(body, new Control[] { grid, detail, actions }, -1, 100, 48);
         }
-        bool ReviewDialog(string title, string[] entries, string explanation)
+        bool ReviewDialog(string title, string[] entries, string explanation, string screenshot = null)
         {
             using (var dialog = new Form { Text = title, ClientSize = new Size(690, 470), MinimumSize = new Size(620, 400), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, MinimizeBox = false, MaximizeBox = false, Padding = new Padding(20) })
             {
@@ -300,8 +331,16 @@ namespace Lean81
                 var controls = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 55, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(0, 12, 0, 0) };
                 var apply = ActionButton(title.StartsWith("Restore", StringComparison.Ordinal) ? "Restore settings" : "Apply selected changes", (s, e) => dialog.DialogResult = DialogResult.OK, true);
                 var cancel = ActionButton("Cancel", (s, e) => dialog.DialogResult = DialogResult.Cancel); controls.Controls.Add(apply); controls.Controls.Add(cancel);
-                dialog.Controls.Add(list); dialog.Controls.Add(header); dialog.Controls.Add(controls); dialog.CancelButton = cancel;
-                return dialog.ShowDialog(this) == DialogResult.OK;
+                var panel = new Panel { Dock = DockStyle.Fill }; Rows(panel, new Control[] { header, list, controls }, 70, -1, 55); dialog.Controls.Add(panel); dialog.CancelButton = cancel;
+                using (var timer = new System.Windows.Forms.Timer { Interval = 150 })
+                {
+                    if (screenshot != null)
+                    {
+                        timer.Tick += (s, e) => { timer.Stop(); using (var image = new Bitmap(dialog.Width, dialog.Height)) { dialog.DrawToBitmap(image, new Rectangle(Point.Empty, dialog.Size)); image.Save(screenshot, System.Drawing.Imaging.ImageFormat.Png); } dialog.DialogResult = DialogResult.Cancel; };
+                        dialog.Shown += (s, e) => timer.Start();
+                    }
+                    return dialog.ShowDialog(this) == DialogResult.OK;
+                }
             }
         }
         async Task ReviewChanges()
@@ -346,8 +385,45 @@ namespace Lean81
             try { Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"), "\"" + Environment.GetFolderPath(Environment.SpecialFolder.Startup) + "\"") { UseShellExecute = true }); } catch (Exception ex) { Error(ex); }
         }
         void Error(Exception ex) { MessageBox.Show(this, Product.Clean(ex.Message, 700), "Lean81", MessageBoxButtons.OK, MessageBoxIcon.Information); }
-        internal void SmokePage(int index) { capture = CaptureResult.Demo(); ShowPage(index); }
+        internal void SmokePage(int index)
+        {
+            capture = CaptureResult.Demo();
+            if (index == 4) { profile.HomeGroup = profile.MediaSharing = profile.OfflineFiles = false; report = backend.Scan(profile); }
+            if (index == 7 && journals.List().Count == 0)
+            {
+                var item = report.Items.First(x => x.Kind == "startup" && x.CanChange);
+                new ChangeEngine(backend, journals).Apply(new[] { item }, profile, null);
+            }
+            ShowPage(index);
+        }
         internal bool SmokeReady { get { return report != null && !busy; } }
+        internal void SmokeReviewScreenshot(string path)
+        {
+            if (!demo) throw new InvalidOperationException("GUI smoke requires synthetic mode.");
+            if (ReviewDialog("Review selected changes", new[] { "Cloud sync companion  ·  user\r\nTradeoff: the app will no longer start automatically. Manual launch stays available.", "HomeGroup listener  ·  machine\r\nTradeoff: HomeGroup sharing features will be unavailable." }, "DEMO: these changes only affect synthetic in-memory settings.", path)) throw new InvalidOperationException("Smoke review must cancel.");
+        }
+        internal void ValidateSmokeLayout()
+        {
+            PerformLayout();
+            if (pageLayout.GetControlFromPosition(0, 0).Height < 40 || pageLayout.GetControlFromPosition(0, 2).Height < 200 || !review.Visible || review.Height < 25)
+                throw new InvalidOperationException("Required page content or review action is clipped.");
+            CheckTables(this);
+        }
+        static void CheckTables(Control parent)
+        {
+            var table = parent as TableLayoutPanel;
+            if (table != null)
+            {
+                var children = table.Controls.Cast<Control>().Where(c => c.Visible).ToArray();
+                for (int i = 0; i < children.Length; i++)
+                {
+                    if (!table.ClientRectangle.Contains(children[i].Bounds)) throw new InvalidOperationException("A table control is outside its visible area.");
+                    for (int j = i + 1; j < children.Length; j++)
+                        if (children[i].Bounds.IntersectsWith(children[j].Bounds)) throw new InvalidOperationException("Required controls overlap.");
+                }
+            }
+            foreach (Control child in parent.Controls) CheckTables(child);
+        }
         internal void SaveScreenshot(string path)
         {
             using (var image = new Bitmap(Width, Height)) { DrawToBitmap(image, new Rectangle(Point.Empty, Size)); image.Save(path, System.Drawing.Imaging.ImageFormat.Png); }

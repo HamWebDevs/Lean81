@@ -57,6 +57,10 @@ namespace Lean81
             if (!Trusted(acl.GetOwner(typeof(SecurityIdentifier)))) throw new InvalidOperationException("Recovery file has an unexpected owner.");
             CheckRules(acl);
         }
+        static void SetNewOwner(string path)
+        {
+            var acl = new FileSecurity(); acl.SetOwner(Admins); File.SetAccessControl(path, acl);
+        }
         string ReceiptPath(string id)
         {
             Guid guid; if (!Guid.TryParseExact(id, "N", out guid)) throw new InvalidOperationException("Invalid receipt ID.");
@@ -65,9 +69,9 @@ namespace Lean81
         public IDisposable Lock()
         {
             EnsureDirectory(); var path = Path.Combine(directory, "session.lock");
-            if (File.Exists(path)) CheckFile(path);
+            bool existed = File.Exists(path); if (existed) CheckFile(path);
             var stream = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
-            try { CheckFile(path); return stream; } catch { stream.Dispose(); throw; }
+            try { if (!existed) SetNewOwner(path); CheckFile(path); return stream; } catch { stream.Dispose(); throw; }
         }
         public void Save(ChangeReceipt receipt, bool create)
         {
@@ -81,7 +85,7 @@ namespace Lean81
             try
             {
                 using (var file = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { file.Write(bytes, 0, bytes.Length); file.Flush(true); }
-                CheckFile(temporary);
+                SetNewOwner(temporary); CheckFile(temporary);
                 if (create) File.Move(temporary, path); else File.Replace(temporary, path, null);
                 CheckFile(path);
             }
