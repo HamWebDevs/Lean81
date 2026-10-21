@@ -1,0 +1,22 @@
+name: Bug report
+description: Report a reproducible Lean81 issue
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Lean81 and Windows versions
+      placeholder: Lean81 0.1.0, Windows 8.1 x64
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected behavior and actual behavior
+      description: Include visible error text. Do not attach private receipt JSON, full paths, credentials or personal startup commands.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Recovery or affected feature
+      description: Did a change affect printing, search, Bluetooth or another feature? Was a receipt created?

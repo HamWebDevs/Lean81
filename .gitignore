@@ -1,0 +1,9 @@
+artifacts/
+packages/
+bin/
+obj/
+*.user
+*.suo
+*.pdb
+*.log
+.vs/

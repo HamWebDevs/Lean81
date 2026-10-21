@@ -1,0 +1,25 @@
+Lean81 0.1.0 preview - HamWebDevs
+
+1. Extract the portable ZIP to a folder on your laptop.
+2. Open Lean81.exe. Windows 8.1 already includes the target .NET Framework.
+3. Scan this laptop. Start with Startup apps and Installed apps.
+4. In Usage profile, uncheck only features you do not use. Keep uncertain ones checked.
+5. Refresh recommendations. Select individual entries and read their tradeoffs.
+6. Enable changes when ready. Windows may ask for administrator permission.
+   Elevation opens a fresh scan: set the profile and select your choices again.
+7. Review changes, then apply. Recovery holds the saved original settings.
+8. Capture CPU before and after under the same workload and power conditions.
+
+Nothing is disabled automatically. No Python, installer, browser engine,
+downloaded runtime, permanent service or account is required.
+
+Keep C:\ProgramData\Lean81: it holds private recovery data. Do not share
+receipt JSON files: startup commands may contain personal information.
+
+This is an unsigned preview. Download only from HamWebDevs/Lean81 releases
+and verify the published SHA256 if you need to confirm the file's integrity.
+The code targets Windows 8.1; automated testing runs on newer Windows.
+Actual Windows 8.1 hardware testing is still pending. See COMPATIBILITY.md.
+
+Demo: Lean81.exe --demo (synthetic data; no system writes).
+Issues and source: https://github.com/HamWebDevs/Lean81

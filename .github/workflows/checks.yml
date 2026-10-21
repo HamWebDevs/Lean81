@@ -1,0 +1,36 @@
+name: Windows build and checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Compile against .NET 4.5.1 and test disposable Windows fixtures
+        shell: powershell
+        env:
+          LEAN81_NATIVE_FIXTURES: ephemeral-ci
+        run: ./scripts/build.ps1 -Test -Native -Gui -Package
+      - name: Upload executable and verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Lean81-windows-preview
+          path: |
+            artifacts/Lean81.exe
+            artifacts/Lean81.exe.config
+            artifacts/*-portable.zip
+            artifacts/*-source.zip
+            artifacts/SHA256SUMS.txt
+            artifacts/tests.txt
+            artifacts/gui/
+          if-no-files-found: error
