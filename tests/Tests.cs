@@ -6,7 +6,7 @@ using System.Threading;
 using Lean81;
 using Microsoft.Win32;
 
-static class Tests
+static partial class Tests
 {
     static int passed, failed;
     static void Assert(bool yes, string message = "assertion failed") { if (!yes) throw new Exception(message); }
@@ -158,7 +158,7 @@ static class Tests
     }
     [STAThread] static int Main(string[] args)
     {
-        MainCore(); if (args.Contains("--native")) Test("Windows native fixture suite", Native);
+        MainCore(); FeatureTests(); if (args.Contains("--native")) Test("Windows native fixture suite", Native);
         Console.WriteLine(passed + " passed, " + failed + " failed"); return failed == 0 ? 0 : 1;
     }
 }

@@ -9,6 +9,28 @@ namespace Lean81
         readonly IBackend backend;
         readonly IJournalStore journals;
         public ChangeEngine(IBackend backend, IJournalStore journals) { this.backend = backend; this.journals = journals; }
+        public IList<RecoveryCheck> Inspect(string id)
+        {
+            if (!backend.IsAdministrator) throw new InvalidOperationException("Enable administrator mode to inspect private recovery states.");
+            using (journals.Lock())
+            {
+                var receipt = journals.Load(id); ValidateReceipt(receipt, backend.MachineScope); var result = new List<RecoveryCheck>();
+                foreach (var entry in receipt.Entries)
+                {
+                    var check = new RecoveryCheck { Name = entry.Name, Original = Policy.StateLabel(entry.Original) };
+                    try
+                    {
+                        var current = backend.Read(entry.Original); check.Current = Policy.StateLabel(current);
+                        bool original = current.Fingerprint() == entry.Original.Fingerprint(), disabled = current.Fingerprint() == entry.Expected.Fingerprint();
+                        check.Status = original ? "Already original" : disabled ? "Matches saved disabled state" : "Conflict / manual review";
+                        check.CanRestore = entry.Status != "Restored" && (original || disabled);
+                    }
+                    catch { check.Current = "Unavailable"; check.Status = "Cannot verify; manual review"; }
+                    result.Add(check);
+                }
+                return result;
+            }
+        }
         public ChangeReceipt Apply(IList<ScanItem> selection, UsageProfile profile, Action<string> progress)
         {
             if (!backend.IsAdministrator) throw new InvalidOperationException("Enable administrator mode to make changes.");
@@ -114,5 +136,9 @@ namespace Lean81
                     throw new InvalidOperationException("Receipt states do not match a supported disable operation.");
             }
         }
+    }
+    public sealed class RecoveryCheck
+    {
+        public string Name, Original, Current, Status; public bool CanRestore;
     }
 }

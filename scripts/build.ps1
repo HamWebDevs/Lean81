@@ -44,7 +44,7 @@ public static class LeanIcon {
  }
 }
 '@
-Add-Type -TypeDefinition $iconBuilder -ReferencedAssemblies System.Drawing
+if (!('LeanIcon' -as [type])) { Add-Type -TypeDefinition $iconBuilder -ReferencedAssemblies System.Drawing }
 $icon = Join-Path $out 'Lean81.ico'
 [LeanIcon]::Write($icon)
 $exe = Join-Path $out 'Lean81.exe'
@@ -53,7 +53,8 @@ if ($LASTEXITCODE -ne 0) { throw 'App compilation failed.' }
 $config = '<?xml version="1.0" encoding="utf-8"?><configuration><startup useLegacyV2RuntimeActivationPolicy="false"><supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.5.1"/></startup></configuration>'
 [IO.File]::WriteAllText((Join-Path $out 'Lean81.exe.config'), $config, (New-Object Text.UTF8Encoding($false)))
 if ($Test -or $Native) {
-    & $compiler @common '/target:exe' '/main:Tests' ('/out:' + (Join-Path $out 'Lean81.Tests.exe')) @source (Join-Path $root 'tests/Tests.cs')
+    $testSource = @(Get-ChildItem 'tests/*.cs' | ForEach-Object { $_.FullName })
+    & $compiler @common '/target:exe' '/main:Tests' ('/out:' + (Join-Path $out 'Lean81.Tests.exe')) @source @testSource
     if ($LASTEXITCODE -ne 0) { throw 'Test compilation failed.' }
     $testArgs = @(); if ($Native) { $testArgs += '--native' }
     & (Join-Path $out 'Lean81.Tests.exe') @testArgs | Tee-Object (Join-Path $out 'tests.txt')
@@ -67,7 +68,7 @@ if ($Gui) {
     if ($process.ExitCode -ne 0 -or !(Test-Path (Join-Path $guiDir 'gui-smoke.txt'))) { throw 'GUI smoke failed; inspect GUI artifacts.' }
 }
 if ($Package) {
-    $version = '0.1.0'
+    $version = '0.2.0'
     $portable = Join-Path $out ('Lean81-' + $version + '-portable')
     if (Test-Path $portable) { Remove-Item -Recurse -Force $portable }
     New-Item -ItemType Directory $portable | Out-Null

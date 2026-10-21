@@ -36,6 +36,24 @@ namespace Lean81
         public int LogicalCpus;
         public ulong MemoryBytes;
         public string CpuModel, Error;
+        public void ExportCsv(string path, bool includeNames)
+        {
+            using (var writer = new StreamWriter(path, false, new UTF8Encoding(true)))
+            {
+                writer.WriteLine("elapsed_s,interval_s,cpu_pct,memory_available_pct,power,top_process_cpu_pct,top_process_name");
+                foreach (var sample in Samples)
+                {
+                    var top = sample.processes.OrderByDescending(p => p.cpu_pct).FirstOrDefault();
+                    writer.WriteLine(String.Join(",", new[] { sample.t.ToString("0.000", CultureInfo.InvariantCulture), sample.dt.ToString("0.000", CultureInfo.InvariantCulture), Convert.ToString(sample.metrics["cpu_pct"], CultureInfo.InvariantCulture), Convert.ToString(sample.metrics["memory_available_pct"], CultureInfo.InvariantCulture), Csv(Convert.ToString(sample.metrics["power"], CultureInfo.InvariantCulture)), top == null ? "" : top.cpu_pct.ToString("0.000", CultureInfo.InvariantCulture), Csv(includeNames && top != null ? top.name : "redacted") }));
+                }
+            }
+        }
+        static string Csv(string value)
+        {
+            value = Product.Clean(value, 128);
+            if (value.Length > 0 && "=+-@".IndexOf(value[0]) >= 0) value = "'" + value;
+            return "\"" + value.Replace("\"", "\"\"") + "\"";
+        }
         public void Export(string path, bool includeNames)
         {
             using (var writer = new StreamWriter(path, false, new UTF8Encoding(false)))

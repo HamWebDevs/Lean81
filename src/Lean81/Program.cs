@@ -8,8 +8,8 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyCompany("HamWebDevs")]
 [assembly: System.Reflection.AssemblyProduct("Lean81")]
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2026 HamWebDevs")]
-[assembly: System.Reflection.AssemblyVersion("0.1.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("0.1.0.0")]
+[assembly: System.Reflection.AssemblyVersion("0.2.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("0.2.0.0")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.5.1", FrameworkDisplayName = ".NET Framework 4.5.1")]
 
 namespace Lean81
@@ -42,10 +42,11 @@ namespace Lean81
                             {
                                 if (++ticks > 80) throw new InvalidOperationException("GUI scan timed out.");
                                 if (!form.SmokeReady) return;
-                                if (page < 8) { form.SmokePage(page); form.Refresh(); form.ValidateSmokeLayout(); form.SaveScreenshot(Path.Combine(output, "page-" + page + ".png")); page++; }
-                                else if (page == 8) { timer.Stop(); form.SmokeReviewScreenshot(Path.Combine(output, "review-dialog.png")); page++; timer.Start(); }
-                                else if (page == 9) { form.ClientSize = new System.Drawing.Size(980, 620); form.SmokePage(2); form.Refresh(); form.ValidateSmokeLayout(); form.SaveScreenshot(Path.Combine(output, "small-window.png")); page++; }
-                                else { timer.Stop(); File.WriteAllText(Path.Combine(output, "gui-smoke.txt"), "PASS: 8 pages, cancelled review dialog and small window rendered with layout checks in synthetic demo mode."); form.Close(); }
+                                int count = form.SmokePageCount;
+                                if (page < count) { form.SmokePage(page); form.Refresh(); form.ValidateSmokeLayout(); form.SaveScreenshot(Path.Combine(output, "page-" + page + ".png")); page++; }
+                                else if (page < count * 2) { form.ClientSize = new System.Drawing.Size(980, 620); form.SmokePage(page - count); form.Refresh(); form.ValidateSmokeLayout(); form.SaveScreenshot(Path.Combine(output, "small-" + (page - count) + ".png")); page++; }
+                                else if (page == count * 2) { timer.Stop(); form.SmokeReviewScreenshot(Path.Combine(output, "review-dialog.png")); form.SmokeSetupScreenshot(Path.Combine(output, "quick-setup.png")); form.SmokeComparisonScreenshot(Path.Combine(output, "comparison.png")); form.SmokeInteractions(); page++; timer.Start(); }
+                                else { timer.Stop(); File.WriteAllText(Path.Combine(output, "gui-smoke.txt"), "PASS: " + count + " pages at two sizes, cancelled review/setup dialogs, saved-result comparison, checkbox/filter/protection interactions and demo tool launches."); form.Close(); }
                             }
                             catch (Exception ex) { smokeError = ex; timer.Stop(); form.Close(); }
                         };
