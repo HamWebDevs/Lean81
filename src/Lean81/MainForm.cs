@@ -51,6 +51,7 @@ namespace Lean81
         {
             this.backend = backend; this.journals = journals; this.demo = demo;
             preferences = demo ? null : WorkspaceStore.Local(); workspace = preferences == null ? new UserWorkspace() : preferences.Load(); Profiles.Copy(workspace.Profile, profile);
+            preferencesNotice = preferences == null ? null : preferences.Warning;
             Text = "Lean81" + (demo ? " — Demo" : "") + " · " + Product.Version;
             Font = new Font("Segoe UI", 9.5f); ForeColor = Ink; BackColor = Canvas;
             ClientSize = new Size(1080, 700); MinimumSize = new Size(980, 620); StartPosition = FormStartPosition.CenterScreen;
@@ -66,7 +67,7 @@ namespace Lean81
             sidebar.Controls.Add(new Label { Text = "A lighter working day.", ForeColor = Color.FromArgb(175, 194, 207), Bounds = new Rectangle(24, 75, 170, 26) });
             for (int i = 0; i < Pages.Length; i++)
             {
-                int target = i; var button = new Button { Text = Pages[i], Bounds = new Rectangle(12, 123 + i * 37, 172, 34), TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(12, 0, 0, 0), FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(202, 215, 224), BackColor = Ink, TabIndex = i };
+                int target = i; var button = new Button { Text = Pages[i], UseMnemonic = false, Bounds = new Rectangle(12, 123 + i * 37, 172, 34), TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(12, 0, 0, 0), FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(202, 215, 224), BackColor = Ink, TabIndex = i };
                 button.FlatAppearance.BorderSize = 0; button.Click += (s, e) => ShowPage(target); navigation.Add(button); sidebar.Controls.Add(button);
             }
             var mode = new Label { Text = demo ? "SYNTHETIC DEMO\nNo system writes" : backend.IsAdministrator ? "ADMINISTRATOR\nChanges enabled" : "INSPECTION MODE\nNo admin needed to scan", ForeColor = Color.FromArgb(162, 184, 198), AutoSize = false, Height = 55, Dock = DockStyle.Bottom, Padding = new Padding(24, 4, 8, 6) }; sidebar.Controls.Add(mode);
@@ -87,7 +88,7 @@ namespace Lean81
         }
         static Button ActionButton(string text, EventHandler action, bool primary = false)
         {
-            var b = new Button { Text = text, AutoSize = true, MinimumSize = new Size(140, 36), Margin = new Padding(0, 0, 12, 0), Padding = new Padding(10, 0, 10, 0) };
+            var b = new Button { Text = text, UseMnemonic = false, AutoSize = true, MinimumSize = new Size(140, 36), Margin = new Padding(0, 0, 12, 0), Padding = new Padding(10, 0, 10, 0) };
             StyleButton(b, primary); b.Click += action; return b;
         }
         void Heading(string title, string subtitle)
@@ -124,13 +125,13 @@ namespace Lean81
         {
             busy = value; foreach (var nav in navigation) nav.Enabled = !value;
             content.Enabled = !value || captureCancel != null;
-            review.Enabled = !value && selected.Count > 0; status.Text = message;
+            review.Enabled = !value && !choicesStale && selected.Count > 0; status.Text = message + (!value && preferencesNotice != null ? " · preferences unavailable" : "");
             if (!value && closeWhenIdle && IsHandleCreated) BeginInvoke(new Action(Close));
         }
         async Task Scan()
         {
             if (busy) return; SetBusy(true, "Scanning startup entries, optional services, tasks and installed apps…");
-            try { report = await Task.Run(() => backend.Scan(profile)); device = await Task.Run(() => demo ? DeviceSnapshot.Demo() : DeviceSnapshot.Read()); selected.Clear(); ShowPage(page); SetBusy(false, "Scan complete · " + report.Items.Count + " items · " + report.Notes.Count + " notes" + (preferences != null && preferences.Warning != null ? " · preferences reset" : "")); }
+            try { report = await Task.Run(() => backend.Scan(profile)); device = await Task.Run(() => demo ? DeviceSnapshot.Demo() : DeviceSnapshot.Read()); choicesStale = false; selected.Clear(); ShowPage(page); SetBusy(false, "Scan complete · " + report.Items.Count + " items · " + report.Notes.Count + " notes" + (preferences != null && preferences.Warning != null ? " · preferences reset" : "")); }
             catch (Exception ex) { SetBusy(false, "Scan could not finish"); Error(ex); }
             UpdateSelection();
         }
@@ -146,7 +147,7 @@ namespace Lean81
         void Inventory(string kind)
         {
             Heading(kind == "startup" ? "Start fewer things at sign-in." : kind == "task" ? "Review scheduled activity." : "Keep the services you need.",
-                kind == "service" ? "Optional services only. Your usage profile and service dependencies decide which can be selected." : "Select only items you recognize. Protected entries stay available for inspection.");
+                choicesStale ? "Your usage answers changed. Rescan before selecting changes." : kind == "service" ? "Optional services only. Your usage profile and service dependencies decide which can be selected." : "Select only items you recognize. Protected entries stay available for inspection.");
             var body = new Panel(); Body(body);
             var detail = new TextBox { Dock = DockStyle.Bottom, Height = 100, Multiline = true, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White, ForeColor = Muted, ScrollBars = ScrollBars.Vertical, Text = "Select a row to inspect its purpose and tradeoff." }; body.Controls.Add(detail);
             var toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 80, WrapContents = true };
@@ -156,7 +157,7 @@ namespace Lean81
             toolbar.Controls.Add(ActionButton("Rescan", async (s, e) => await Scan()));
             if (kind == "task") toolbar.Controls.Add(ActionButton("Task Scheduler", (s, e) => OpenSystem("taskschd.msc", "")));
             if (kind == "startup") toolbar.Controls.Add(ActionButton("Startup folder", (s, e) => OpenStartup()));
-            if (kind == "service") toolbar.Controls.Add(ActionButton("Select unused services", (s, e) => { if (report == null) return; foreach (var item in report.Items.Where(i => i.Kind == "service" && i.CanChange && i.Suggested)) selected[item.Id] = item; ShowPage(4); status.Text = "Unused services selected for review · no settings changed"; }));
+            if (kind == "service") toolbar.Controls.Add(ActionButton("Select unused services", (s, e) => { if (report == null || choicesStale) { status.Text = "Rescan after changing your usage answers."; return; } foreach (var item in report.Items.Where(i => i.Kind == "service" && i.CanChange && i.Suggested)) selected[item.Id] = item; ShowPage(4); status.Text = "Unused services selected for review · no settings changed"; }));
             body.Controls.Add(toolbar);
             var grid = Grid(); grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Select", HeaderText = "", Width = 35, AutoSizeMode = DataGridViewAutoSizeColumnMode.None });
             grid.Columns.Add("Name", "Name"); grid.Columns.Add("Scope", "Scope"); grid.Columns.Add("Status", "Current state"); grid.Columns.Add("Reason", "Why / next step"); grid.Columns["Name"].FillWeight = 30; grid.Columns["Scope"].FillWeight = 12; grid.Columns["Status"].FillWeight = 24; grid.Columns["Reason"].FillWeight = 34;
@@ -164,10 +165,10 @@ namespace Lean81
             Action populate = () =>
             {
                 grid.Rows.Clear(); if (report == null) return;
-                foreach (var item in report.Items.Where(x => x.Kind == kind && (!selectable.Checked || x.CanChange) && (x.Name + " " + x.Before.Target).IndexOf(search.Text, StringComparison.OrdinalIgnoreCase) >= 0).OrderByDescending(x => x.CanChange).ThenBy(x => x.Name))
+                foreach (var item in report.Items.Where(x => x.Kind == kind && (!selectable.Checked || !choicesStale && x.CanChange) && (x.Name + " " + x.Before.Target).IndexOf(search.Text, StringComparison.OrdinalIgnoreCase) >= 0).OrderByDescending(x => x.CanChange).ThenBy(x => x.Name))
                 {
-                    string reason = Profiles.FeatureReason(item, profile);
-                    var row = grid.Rows[grid.Rows.Add(selected.ContainsKey(item.Id), item.Name, item.Scope, item.Status, reason)]; row.Tag = item; row.Cells[0].ReadOnly = !item.CanChange; row.Cells[4].ToolTipText = reason; row.Cells[1].ToolTipText = item.Name;
+                    string reason = choicesStale ? "Rescan after changing usage answers" : Profiles.FeatureReason(item, profile);
+                    var row = grid.Rows[grid.Rows.Add(selected.ContainsKey(item.Id), item.Name, item.Scope, item.Status, reason)]; row.Tag = item; row.Cells[0].ReadOnly = choicesStale || !item.CanChange; row.Cells[4].ToolTipText = reason; row.Cells[1].ToolTipText = item.Name;
                     if (!item.CanChange) row.DefaultCellStyle.ForeColor = Muted;
                     row.Cells[0].ToolTipText = item.CanChange ? "Select for review" : "Kept, protected, missing or already disabled";
                 }
@@ -177,7 +178,7 @@ namespace Lean81
             grid.CellValueChanged += (s, e) =>
             {
                 if (e.RowIndex < 0 || e.ColumnIndex != 0) return; var row = grid.Rows[e.RowIndex]; var item = row.Tag as ScanItem; if (item == null) return;
-                if (item.CanChange && Convert.ToBoolean(row.Cells[0].Value)) selected[item.Id] = item; else selected.Remove(item.Id); UpdateSelection();
+                if (!choicesStale && item.CanChange && Convert.ToBoolean(row.Cells[0].Value)) selected[item.Id] = item; else selected.Remove(item.Id); UpdateSelection();
             };
             grid.SelectionChanged += (s, e) =>
             {
@@ -290,7 +291,7 @@ namespace Lean81
         }
         async Task ReviewChanges()
         {
-            if (busy || selected.Count == 0) return;
+            if (busy || choicesStale || selected.Count == 0) return;
             var items = selected.Values.ToList();
             if (!ReviewDialog("Review selected changes", items.Select(x => x.Name + "  ·  " + x.Scope + "\r\n" + x.Before.Target + "\r\nTradeoff: " + x.Tradeoff).ToArray(), demo ? "DEMO: these changes only affect synthetic in-memory settings." : backend.IsAdministrator ? "Review every tradeoff. Original settings are saved before writing, and each selection is rechecked against current settings." : "Inspect or save this review without admin rights. Enable changes opens a fresh administrator scan; your usage answers are remembered and items must be selected again.", null, backend.IsAdministrator ? "Apply selected changes" : "Enable changes & rescan")) return;
             if (!backend.IsAdministrator) { SaveWorkspace(); Elevate(); return; }
@@ -303,7 +304,7 @@ namespace Lean81
             }
             catch (Exception ex) { SetBusy(false, "Changes stopped · review the current settings and recovery receipts"); Error(ex); }
         }
-        void UpdateSelection() { review.Text = "Review changes (" + selected.Count + ")"; review.Enabled = !busy && selected.Count > 0; }
+        void UpdateSelection() { review.Text = "Review changes (" + selected.Count + ")"; review.Enabled = !busy && !choicesStale && selected.Count > 0; }
         void Elevate()
         {
             if (demo) return;

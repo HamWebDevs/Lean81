@@ -11,3 +11,9 @@ A partially completed service operation can match neither saved state. For examp
 Recovery is scoped to the machine and Windows user that made the changes. Alternate-account UAC elevation is refused so HKCU cannot silently switch to another account. Elevation starts a fresh scan and does not carry an untrusted change plan into the administrator process.
 
 Directory redirections, unexpected storage owners/permissions, invalid receipt IDs, oversized JSON and unsupported actions are refused. Keep the recovery folder when moving the portable EXE. Removing the EXE does not undo settings; restore first if that is what you intend.
+
+## Check before restoring
+
+Version 0.2 adds **Check saved states**. It reads each saved item's current state and reports Already original, Matches saved disabled state, Conflict, or Unavailable. This assessment makes no system-setting changes. Restore still performs a fresh whole-receipt preflight; a previous assessment is not an authorization to overwrite a later edit.
+
+Existing version 0.1 receipts remain supported because the receipt schema and change scope are unchanged. Keep the protected ProgramData folder when upgrading or moving the EXE. Local workspace preferences and CPU summaries are separate from recovery receipts and cannot apply or restore settings.

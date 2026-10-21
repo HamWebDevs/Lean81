@@ -7,7 +7,7 @@ Builds use Microsoft's `Microsoft.NETFramework.ReferenceAssemblies.net451` versi
 | Platform | Status |
 | --- | --- |
 | Windows 8.1 x86 / x64 | Design and API target; physical-device validation pending |
-| Windows Server 2022, GitHub-hosted runner | Automated compile, transaction tests, disposable Run/task fixtures, native capture and GUI rendering |
+| Windows Server 2022, GitHub-hosted runner | Automated compile, transaction tests, disposable Run/task fixtures, native capture/device snapshots and GUI rendering at two sizes |
 | Windows 10 / 11 | Expected with .NET Framework 4.5.1 or later installed; desktop validation pending |
 | Linux / macOS | Not supported |
 
@@ -26,3 +26,15 @@ Windows 8.1 is no longer supported by Microsoft. Lean81 does not make the operat
 Framework reference: https://learn.microsoft.com/en-us/dotnet/framework/deployment/deployment-guide-for-developers
 
 Windows lifecycle: https://learn.microsoft.com/en-us/lifecycle/products/windows-81
+
+## Version 0.2 additions
+
+Quick setup and presets only fill usage answers. They do not apply actions. Workspace JSON is bounded to 128 KiB and 12 aggregate results. Invalid settings fall back to keeping every feature, with a warning. Preferences contain no change plans and are never interpreted as executable commands.
+
+Comparisons use a time-weighted CPU mean and require distinct results, matching machine/hardware, synthetic status, workload label and known power source. Both captures must be complete, have CPU coverage for every sample, last at least 15 observed seconds and have durations within a factor of 1.25. Matching labels are not proof of matching workloads or causality.
+
+Fixed-drive capacity is read through DriveInfo; it is not a SMART, SSD, temperature or disk-health test. Uptime comes from GetTickCount64 and reflects Windows boot uptime, which can include a Fast Startup session. Windows tools may expose options outside Lean81's allowlist: the user reviews those tools' own actions.
+
+CSV exports quote strings and neutralize formula-leading process names. HTML reports encode dynamic content, load no remote resources and omit raw command/path/task/receipt fields. Software names are optional; workload labels are excluded from support reports.
+
+Reference APIs: https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64 and https://learn.microsoft.com/en-us/dotnet/api/system.io.driveinfo.availablefreespace?view=netframework-4.5.1

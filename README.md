@@ -4,11 +4,23 @@
 
 Lean81 is a small native Windows app for inspecting background load and making deliberate, reversible changes. Built for Windows 8.1 laptops with limited CPU and memory. C# / Windows Forms, no Python runtime, bundled browser, telemetry, account or permanent service.
 
-[Download the preview](https://github.com/HamWebDevs/Lean81/releases/tag/v0.1.0) · [Quick start](docs/QUICKSTART.txt) · [Recovery](docs/RECOVERY.md) · [Compatibility](docs/COMPATIBILITY.md)
+[Download the preview](https://github.com/HamWebDevs/Lean81/releases/tag/v0.2.0) · [Quick start](docs/QUICKSTART.txt) · [Recovery](docs/RECOVERY.md) · [Compatibility](docs/COMPATIBILITY.md)
 
 ![Lean81 overview in synthetic demo mode](docs/screenshots/overview.png)
 
 Screenshots show the actual Windows app with synthetic demo data.
+
+## New in 0.2.0
+
+- **Quick setup:** choose a usage preset, check your answers and review the matching services.
+- **Recommendations:** plain-language next steps based on the scan, storage capacity and CPU observations.
+- **Saved results:** up to 12 local CPU summaries, a retained baseline and comparisons that check workload, duration, power, coverage and hardware.
+- **Device & storage:** CPU, RAM, uptime, power/battery and fixed-drive capacity snapshots.
+- **Reports & CSV:** export a local HTML report or a spreadsheet of CPU samples. Software/process names stay opt-in.
+- **Clearer choices:** explanations for kept entries, selectable-only filters, app search, non-admin reviews and saveable review text.
+- **Help & tools:** nine Windows tools, in-app guidance and recovery-state checks without applying settings.
+
+[Feature guide](docs/FEATURES.md) · [Privacy and local data](docs/PRIVACY.md)
 
 ## What you can do
 
@@ -25,15 +37,16 @@ Nothing is disabled automatically. Lean81 does not promise a faster CPU: an idle
 
 ## Run it
 
-1. Download and extract **Lean81-0.1.0-portable.zip** from Releases.
-2. Open **Lean81.exe**. Scan without administrator rights.
-3. Review startup items, and keep uncertain usage-profile features checked.
-4. Enable changes when ready, select individual items, and read the review screen.
-5. Use **Recovery** to restore saved settings. Keep `%ProgramData%\Lean81` and don't share its private receipt files.
+1. Download and extract **Lean81-0.2.0-portable.zip** from Releases.
+2. Open **Lean81.exe** and choose **Quick setup**. Scans and captures work without administrator rights.
+3. Keep uncertain features checked. Presets only fill answers; they never apply settings.
+4. Select recognized startup items or unused services, then choose **Review changes**. Enable changes when ready.
+5. In **CPU capture**, name the activity, record a baseline and repeat the same activity before comparing.
+6. Use **Recovery** to check or restore original settings. Keep `%ProgramData%\Lean81` and don't share its private receipt files.
 
-The release also includes a standalone **Lean81.exe**. Windows 8.1 includes the target .NET Framework 4.5.1. The portable ZIP includes the runtime-selection configuration, local instructions and license. No install step is needed. For a safe tour, run `Lean81.exe --demo` with synthetic data.
+The release also includes a standalone **Lean81.exe**. Windows 8.1 includes the target .NET Framework 4.5.1. The portable ZIP includes the runtime-selection configuration, local instructions, feature/privacy guides and license. No install step is needed. For a safe tour, run `Lean81.exe --demo` with synthetic data.
 
-**0.1.0 is an unsigned preview.** The code and managed APIs target Windows 8.1. Automated Windows checks run on Server 2022; physical Windows 8.1 validation is pending. See [compatibility and limits](docs/COMPATIBILITY.md) before applying changes.
+**0.2.0 is an unsigned preview.** The code and managed APIs target Windows 8.1. Automated Windows checks run on Server 2022; physical Windows 8.1 validation is pending. See [compatibility and limits](docs/COMPATIBILITY.md) before applying changes.
 
 ## Deliberate boundaries
 
@@ -49,7 +62,7 @@ On Windows with .NET Framework's C# compiler, PowerShell and Git:
 ./scripts/build.ps1 -Test -Gui -Package
 ```
 
-The script downloads Microsoft's pinned reference-assembly package (build time only), verifies its SHA256 and compiles using C# 5 against .NET Framework 4.5.1. Output is in `artifacts/`. It builds a WinExe and a separate console test runner, captures demo screenshots and creates portable/source ZIPs with SHA256 checksums.
+The script downloads Microsoft's pinned reference-assembly package (build time only), verifies its SHA256 and compiles using C# 5 against .NET Framework 4.5.1. Output is in `artifacts/`. It builds a WinExe and a separate console test runner, renders every page at two window sizes, checks setup/review cancellation and inventory interactions, captures demo screenshots and creates portable/source ZIPs with SHA256 checksums.
 
 Native mutation fixtures run only on explicitly opted-in ephemeral Windows CI. They create uniquely named Run/task entries, never execute their commands, and clean up in `finally` blocks. No real installed service is toggled. The suite also checks native CPU capture and protected recovery storage. Ordinary local tests use in-memory backends.
 
@@ -59,7 +72,10 @@ Native mutation fixtures run only on explicitly opted-in ephemeral Windows CI. T
 | Change policy | Fixed optional-service allowlist and protected task/startup heuristics |
 | Transactions | Fresh-state checks, intent journal, post-write verification |
 | Recovery | Admin/SYSTEM storage, exact-state checks, whole-batch restore preflight |
-| Diagnostics | GetSystemTimes, GlobalMemoryStatusEx, process-time deltas |
+| Diagnostics | GetSystemTimes, GlobalMemoryStatusEx, process-time deltas, fixed-drive capacity |
+| Local workspace | Bounded preferences and aggregate history; no imported apply plans |
+| Comparisons | Time-weighted CPU, coverage/power/hardware/workload checks |
+| Exports | Encoded local HTML, formula-safe CSV, ReclaimLab JSONL |
 | Release | Windows build and fixtures, GUI evidence, portable/source ZIPs, SHA256 |
 
 Contributions: read [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), and the safety boundaries before adding system changes. Public credit: **HamWebDevs**. MIT licensed.

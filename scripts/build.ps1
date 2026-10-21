@@ -72,7 +72,7 @@ if ($Package) {
     $portable = Join-Path $out ('Lean81-' + $version + '-portable')
     if (Test-Path $portable) { Remove-Item -Recurse -Force $portable }
     New-Item -ItemType Directory $portable | Out-Null
-    Copy-Item $exe, (Join-Path $out 'Lean81.exe.config'), 'LICENSE', 'docs/QUICKSTART.txt', 'docs/RECOVERY.md', 'docs/COMPATIBILITY.md' $portable
+    Copy-Item $exe, (Join-Path $out 'Lean81.exe.config'), 'LICENSE', 'docs/QUICKSTART.txt', 'docs/RECOVERY.md', 'docs/COMPATIBILITY.md', 'docs/FEATURES.md', 'docs/PRIVACY.md' $portable
     $zip = Join-Path $out ('Lean81-' + $version + '-portable.zip')
     if (Test-Path $zip) { Remove-Item $zip }
     [IO.Compression.ZipFile]::CreateFromDirectory($portable, $zip, [IO.Compression.CompressionLevel]::Optimal, $true)

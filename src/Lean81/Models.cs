@@ -26,8 +26,8 @@ namespace Lean81
         }
         public static string Clean(string value, int limit)
         {
-            var text = new string((value ?? "").Where(c => !Char.IsControl(c)).ToArray());
-            return text.Length > limit ? text.Substring(0, limit) : text;
+            if (limit < 0) throw new ArgumentOutOfRangeException("limit");
+            return new string((value ?? "").Where(c => !Char.IsControl(c)).Take(limit).ToArray());
         }
         public static bool Finite(double value) { return !Double.IsNaN(value) && !Double.IsInfinity(value); }
     }

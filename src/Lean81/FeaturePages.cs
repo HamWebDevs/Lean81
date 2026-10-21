@@ -16,13 +16,15 @@ namespace Lean81
         DeviceSnapshot device;
         CaptureSummary latestSummary;
         bool closeWhenIdle;
+        bool choicesStale;
+        string preferencesNotice;
         string CaptureMachineKey { get { return Product.Hash(demo ? "synthetic-demo-machine" : Environment.MachineName); } }
         bool SaveWorkspace()
         {
             Profiles.Copy(profile, workspace.Profile);
             if (preferences == null) return true;
-            try { preferences.Save(workspace); return true; }
-            catch (Exception ex) { status.Text = "Preferences stay in memory · " + Product.Clean(ex.Message, 160); return false; }
+            try { preferences.Save(workspace); preferencesNotice = null; return true; }
+            catch (Exception ex) { preferencesNotice = "Preferences could not be saved; choices and new results stay in this session."; status.Text = preferencesNotice + " " + Product.Clean(ex.Message, 120); return false; }
         }
         void Overview()
         {
@@ -50,6 +52,7 @@ namespace Lean81
             second.Controls.Add(ActionButton("Export report…", (s, e) => ExportReport()));
             second.Controls.Add(ActionButton("Scan notes", (s, e) => ShowScanNotes()));
             var next = LabelAt(demo ? "SYNTHETIC DEMO · try the full workflow without system changes." : backend.IsAdministrator ? "Changes enabled · every selected change still needs review. Recovery holds the original settings." : "Inspection mode · scanning and CPU captures need no admin rights. Enable changes from a review when ready.", 10);
+            if (preferencesNotice != null) next.Text += "\n" + preferencesNotice;
             next.Padding = new Padding(2, 10, 0, 0);
             Rows(body, new Control[] { cards, guide, next, actions, second }, 102, 105, -1, 48, 48);
         }
@@ -87,8 +90,8 @@ namespace Lean81
                 if (screenshot != null) AutoScreenshotAndCancel(dialog, screenshot);
                 if (dialog.ShowDialog(this) != DialogResult.OK) return; answers = ReadChecks(checks);
             }
-            Profiles.Copy(answers, profile); selected.Clear(); SaveWorkspace(); page = 4; await Scan();
-            status.Text = "Answers saved · select the unused services you want to review";
+            Profiles.Copy(answers, profile); selected.Clear(); bool saved = SaveWorkspace(); page = 4; await Scan();
+            status.Text = (saved ? "Answers saved" : "Answers ready in this session") + " · select the unused services you want to review";
         }
         void Profile()
         {
@@ -96,7 +99,7 @@ namespace Lean81
             var body = new Panel(); Body(body);
             var list = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, BackColor = Color.White, Padding = new Padding(16, 8, 8, 8) };
             var checks = FeatureChecks(list, profile);
-            foreach (var check in checks) check.CheckedChanged += (s, e) => { Profiles.Copy(ReadChecks(checks), profile); selected.Clear(); UpdateSelection(); };
+            foreach (var check in checks) check.CheckedChanged += (s, e) => { Profiles.Copy(ReadChecks(checks), profile); choicesStale = true; selected.Clear(); status.Text = "Answers changed · Save & refresh choices before selecting settings"; UpdateSelection(); };
             var choices = new FlowLayoutPanel(); choices.Controls.Add(Presets(checks));
             var actions = new FlowLayoutPanel();
             actions.Controls.Add(ActionButton("Save & refresh choices", async (s, e) => { SaveWorkspace(); page = 4; await Scan(); }, true));
@@ -132,6 +135,7 @@ namespace Lean81
             var body = new Panel(); Body(body);
             var facts = LabelAt(device == null ? "Scan this laptop to load device information." : device.Cpu + "\n" + device.Windows + " · " + device.Architecture + " · " + device.LogicalCpus + " logical processors\nPhysical memory: " + DeviceSnapshot.Size(device.TotalMemory) + " · available: " + DeviceSnapshot.Size(device.AvailableMemory) + "\nPower: " + device.Power + (device.BatteryPercent.HasValue ? " · battery " + device.BatteryPercent + "%" : "") + "\nUptime since Windows boot: " + TimeSpan.FromMilliseconds(device.UptimeMilliseconds).ToString(@"d\d\ hh\h\ mm\m", CultureInfo.InvariantCulture), 10.5f);
             facts.BackColor = Color.White; facts.Padding = new Padding(12, 9, 4, 0);
+            if (device != null && device.Notes.Count > 0) facts.Text += "\nPartial snapshot: " + device.Notes.Count + " readings were unavailable.";
             var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Drive", "Drive"); grid.Columns.Add("Size", "Total GiB"); grid.Columns.Add("Free", "Available GiB"); grid.Columns.Add("Percent", "Available %"); grid.Columns.Add("Status", "Observation");
             grid.Columns[0].FillWeight = 12; grid.Columns[1].FillWeight = 17; grid.Columns[2].FillWeight = 21; grid.Columns[3].FillWeight = 19; grid.Columns[4].FillWeight = 31;
             if (device != null) foreach (var disk in device.Disks) grid.Rows.Add(disk.Drive, (disk.TotalBytes / 1073741824.0).ToString("0.0", CultureInfo.InvariantCulture), (disk.FreeBytes / 1073741824.0).ToString("0.0", CultureInfo.InvariantCulture), disk.FreePercent.ToString("0.0", CultureInfo.InvariantCulture), disk.LowSpace ? "Low free space" : "Capacity observed");
@@ -167,20 +171,22 @@ namespace Lean81
             var body = new Panel { Dock = DockStyle.Fill }; pageTab.Controls.Add(body);
             var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Date", "UTC / workload"); grid.Columns.Add("Average", "Avg CPU"); grid.Columns.Add("Peak", "Peak CPU"); grid.Columns.Add("Seconds", "Observed s"); grid.Columns.Add("Power", "Power / state");
             grid.Columns[0].FillWeight = 35; grid.Columns[1].FillWeight = 14; grid.Columns[2].FillWeight = 14; grid.Columns[3].FillWeight = 15; grid.Columns[4].FillWeight = 22;
+            grid.Columns[0].DefaultCellStyle.WrapMode = DataGridViewTriState.True; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
             foreach (var result in workspace.History)
             {
-                var row = grid.Rows[grid.Rows.Add(result.CreatedUtc.Substring(0, 19).Replace("T", " ") + " · " + result.Workload, result.AverageCpu.ToString("0.0", CultureInfo.InvariantCulture) + "%", result.PeakCpu.ToString("0.0", CultureInfo.InvariantCulture) + "%", result.ObservedSeconds.ToString("0", CultureInfo.InvariantCulture), result.Power + (result.Id == workspace.BaselineId ? " · baseline" : !result.Complete ? " · partial" : result.Synthetic ? " · demo" : ""))]; row.Tag = result;
+                var row = grid.Rows[grid.Rows.Add(result.CreatedUtc.Substring(0, 19).Replace("T", " ") + "\n" + result.Workload, result.AverageCpu.ToString("0.0", CultureInfo.InvariantCulture) + "%", result.PeakCpu.ToString("0.0", CultureInfo.InvariantCulture) + "%", result.ObservedSeconds.ToString("0", CultureInfo.InvariantCulture), ResultState(result))]; row.Tag = result;
                 row.Cells[0].ToolTipText = result.Workload;
             }
             var detail = new TextBox { Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical, Text = "Choose a saved result. Only aggregate numbers and your workload label are saved; process names, paths and PIDs are not stored in history." };
             grid.SelectionChanged += (s, e) => { if (grid.SelectedRows.Count == 0) return; var current = grid.SelectedRows[0].Tag as CaptureSummary; var baseline = workspace.History.FirstOrDefault(r => r.Id == workspace.BaselineId); if (current != null && baseline != null) detail.Text = CaptureComparison.Compare(baseline, current).Text(); };
             var actions = new FlowLayoutPanel { WrapContents = true };
-            actions.Controls.Add(ActionButton("Use as baseline", (s, e) => { if (grid.SelectedRows.Count == 0) return; var result = grid.SelectedRows[0].Tag as CaptureSummary; if (result == null) return; workspace.BaselineId = result.Id; SaveWorkspace(); detail.Text = "Baseline saved: " + result.Workload + "\r\n" + result.CreatedUtc + "\r\nNow repeat the same activity, duration and power state, then compare another saved result."; status.Text = "Baseline saved locally"; }));
+            actions.Controls.Add(ActionButton("Use as baseline", (s, e) => { if (grid.SelectedRows.Count == 0) return; var result = grid.SelectedRows[0].Tag as CaptureSummary; if (result == null) return; workspace.BaselineId = result.Id; bool persisted = SaveWorkspace(); foreach (DataGridViewRow row in grid.Rows) row.Cells[4].Value = ResultState((CaptureSummary)row.Tag); detail.Text = (persisted ? "Baseline saved: " : "Baseline for this session: ") + result.Workload + "\r\n" + result.CreatedUtc + "\r\nNow repeat the same activity, duration and power state, then compare another saved result."; status.Text = persisted ? "Baseline saved locally" : preferencesNotice; }));
             actions.Controls.Add(ActionButton("Compare selected", (s, e) => { if (grid.SelectedRows.Count == 0) return; var baseline = workspace.History.FirstOrDefault(r => r.Id == workspace.BaselineId); if (baseline == null) { detail.Text = "Choose a result and click Use as baseline first."; return; } detail.Text = CaptureComparison.Compare(baseline, (CaptureSummary)grid.SelectedRows[0].Tag).Text(); }, true));
-            actions.Controls.Add(ActionButton("Delete selected result", (s, e) => { if (grid.SelectedRows.Count == 0) return; var result = (CaptureSummary)grid.SelectedRows[0].Tag; workspace.History.Remove(result); if (workspace.BaselineId == result.Id) workspace.BaselineId = null; SaveWorkspace(); ShowPage(6); }));
+            actions.Controls.Add(ActionButton("Delete selected result", (s, e) => { if (grid.SelectedRows.Count == 0) return; var result = (CaptureSummary)grid.SelectedRows[0].Tag; workspace.History.Remove(result); if (workspace.BaselineId == result.Id) workspace.BaselineId = null; SaveWorkspace(); ShowPage(6); ((TabControl)pageLayout.GetControlFromPosition(0, 2)).SelectedIndex = 1; }));
             Rows(body, new Control[] { grid, detail, actions }, -1, 138, 46);
             grid.ClearSelection(); if (grid.Rows.Count > 0) grid.Rows[0].Selected = true;
         }
+        string ResultState(CaptureSummary result) { return result.Power + (result.Synthetic ? " · demo" : "") + (result.Id == workspace.BaselineId ? " · baseline" : !result.Complete ? " · partial" : ""); }
         void ExportReport()
         {
             if (report == null) { status.Text = "Scan this laptop before exporting a report."; return; }
@@ -243,6 +249,12 @@ namespace Lean81
             var filter = Descendants(content).OfType<TextBox>().Single(t => !t.Multiline); filter.Text = "zz-no-such-service";
             if (grid.Rows.Count != 0) throw new InvalidOperationException("Inventory filter did not filter."); filter.Text = "";
             if (grid.Rows.Count == 0) throw new InvalidOperationException("Clearing filter did not restore inventory.");
+            var before = Product.Json().Serialize(profile); ShowPage(1);
+            var answer = Descendants(content).OfType<CheckBox>().First(); answer.Checked = !answer.Checked;
+            if (!choicesStale) throw new InvalidOperationException("Changing a usage answer did not invalidate old choices.");
+            ShowPage(4); grid = Descendants(content).OfType<DataGridView>().Single();
+            if (grid.Rows.Cast<DataGridViewRow>().Any(r => !r.Cells[0].ReadOnly) || review.Enabled) throw new InvalidOperationException("A stale scan still allows selection.");
+            Profiles.Copy(Product.Json().Deserialize<UsageProfile>(before), profile); choicesStale = false; report = backend.Scan(profile); ShowPage(4);
             foreach (var tool in WindowsTools.All) OpenTool(tool.Id);
         }
         const string HelpText = "START HERE\r\nUse Quick setup or Usage profile. Keep features checked if you use them or aren't sure. Presets only fill answers; they never apply changes. Select specific entries and read the review screen.\r\n\r\nWHY CAN'T I SELECT THIS?\r\nA feature can be kept by your answers, needed by a dependent service, already disabled, or protected by policy. The Why / next step column explains it. Core, networking and security services are outside the allowlist.\r\n\r\nADMINISTRATOR MODE\r\nScans, device snapshots, captures and reports work without admin. A change review can reopen Lean81 with administrator permission using the same Windows account. Usage answers are remembered; selections are intentionally made again against a fresh scan. No change plan is imported into the privileged process.\r\n\r\nCPU BASELINES\r\nGive your activity a short workload label. Run a 30-, 60- or 120-second capture, then set its saved result as the baseline. Repeat the same activity, duration and power source before comparing another result. Unknown/mixed power, different hardware, missing samples and partial captures block comparison. Matching labels do not prove matching activity.\r\n\r\nCAPTURE LIMITS\r\nSamples are two seconds apart. Up to five accessible busy processes are recorded per sample, normalized across logical processors. Short spikes and inaccessible processes may be missed. There is no wake-delay probe. Capturing has an observer cost, recorded in the trace. No continuous background monitor runs.\r\n\r\nLOCAL DATA & PRIVACY\r\nUp to 12 aggregate CPU results, workload labels, baseline and usage answers are stored under LocalAppData\\Lean81. History has no process names, PIDs, startup commands or paths. Demo mode uses memory only. Exported traces omit process names by default. HTML reports omit software names unless selected. Review any export before sharing. No telemetry or upload is performed.\r\n\r\nRECOVERY\r\nKeep ProgramData\\Lean81: it holds administrator-private original settings. Recovery checks the entire pending receipt before restoring. Independent edits or partial states stop automatic recovery. Check the receipt, read its error and inspect the corresponding Windows tool. Do not edit receipts to force recovery. Private receipts can contain startup commands; do not share them.\r\n\r\nWHAT CHANGES DO\r\nA startup change removes one supported Run value. A task change prevents future automatic launches; it does not stop a running task. A service change disables its start type and stops that service without stopping dependents. No process killing, automatic uninstalling or file cleanup is performed.\r\n\r\nWINDOWS 8.1\r\nLean81 targets .NET Framework 4.5.1 / Windows 8.1. Automated checks run on newer Windows; physical Windows 8.1 validation is pending. No performance improvement is promised without measurements on your laptop.";

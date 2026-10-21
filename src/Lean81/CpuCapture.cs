@@ -51,7 +51,8 @@ namespace Lean81
         static string Csv(string value)
         {
             value = Product.Clean(value, 128);
-            if (value.Length > 0 && "=+-@".IndexOf(value[0]) >= 0) value = "'" + value;
+            string trimmed = value.TrimStart();
+            if (trimmed.Length > 0 && "=+-@".IndexOf(trimmed[0]) >= 0) value = "'" + value;
             return "\"" + value.Replace("\"", "\"\"") + "\"";
         }
         public void Export(string path, bool includeNames)

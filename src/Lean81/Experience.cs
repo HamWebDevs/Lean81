@@ -12,7 +12,7 @@ namespace Lean81
 {
     public static class Profiles
     {
-        public static readonly string[] Names = { "Keep every feature", "No home or media sharing", "Simple laptop, no wireless extras" };
+        public static readonly string[] Names = { "Keep every feature", "No home or media sharing", "No sharing, Bluetooth or touch" };
         public static UsageProfile Preset(int index)
         {
             if (index < 0 || index >= Names.Length) throw new ArgumentOutOfRangeException("index");
@@ -76,7 +76,9 @@ namespace Lean81
                 if ((power.BatteryChargeStatus & BatteryChargeStatus.NoSystemBattery) == 0 && power.BatteryChargeStatus != BatteryChargeStatus.Unknown && fraction >= 0 && fraction <= 1) d.BatteryPercent = (int)Math.Round(fraction * 100);
             }
             catch { d.Notes.Add("Power information is unavailable."); }
-            foreach (var drive in DriveInfo.GetDrives().Take(26))
+            DriveInfo[] drives;
+            try { drives = DriveInfo.GetDrives(); } catch { d.Notes.Add("Fixed-drive enumeration was unavailable; capacity scan is incomplete."); return d; }
+            foreach (var drive in drives.Take(26))
             {
                 try
                 {
