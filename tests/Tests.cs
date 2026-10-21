@@ -144,7 +144,7 @@ static class Tests
             Test("native journal traversal rejected", () => Throws(() => journals.Load("..\\x")));
             Test("native recovery listing isolates other user scopes", () => Assert(new JournalStore(Product.Hash("different user scope")).List().Count == 0));
             Test("native CPU capture has real bounded samples", () => { var r = CpuCapture.Run(4, CancellationToken.None, null); Assert(!r.Synthetic && r.Error == null && r.Samples.Count >= 2 && r.LogicalCpus > 0); Assert(r.Samples.All(s => Convert.ToDouble(s.metrics["cpu_pct"]) >= 0 && Convert.ToDouble(s.metrics["cpu_pct"]) <= 100)); });
-            Test("native inventory does not mutate service config", () => { var report = b.Scan(new UsageProfile()); Assert(report.Items.Count > 0); Assert(report.Items.Where(x => x.Kind == "service").All(x => !x.CanChange)); });
+            Test("native optional-service inventory is protected by default", () => { var report = b.Scan(new UsageProfile()); Assert(report.Items.Any(x => x.Kind == "service"), "expected at least one installed optional service on the Windows runner"); Assert(report.Items.Where(x => x.Kind == "service").All(x => !x.CanChange && x.Before.Definition.Length == 64)); });
         }
         finally
         {
