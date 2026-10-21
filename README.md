@@ -22,6 +22,8 @@ Screenshots show the actual Windows app with synthetic demo data.
 
 [Feature guide](docs/FEATURES.md) · [Privacy and local data](docs/PRIVACY.md)
 
+![Guided quick setup with synthetic choices](docs/screenshots/quick-setup.png)
+
 ## What you can do
 
 - Inspect Run startup entries and select recognized apps to stop launching at sign-in.
@@ -34,6 +36,8 @@ Screenshots show the actual Windows app with synthetic demo data.
 Nothing is disabled automatically. Lean81 does not promise a faster CPU: an idle background item may cost almost nothing. Capture the same workload before and after to see which changes help your machine.
 
 ![Lean81 CPU capture with synthetic data](docs/screenshots/cpu-capture.png)
+
+![Saved CPU comparison with synthetic results](docs/screenshots/comparison.png)
 
 ## Run it
 

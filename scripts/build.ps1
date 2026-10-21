@@ -17,6 +17,7 @@ if ((Get-FileHash $packageFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne $p
 # Re-extract each build so modified cached reference files cannot change the API target.
 if (Test-Path $packageDir) { Remove-Item -Recurse -Force $packageDir }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression
 [IO.Compression.ZipFile]::ExtractToDirectory($packageFile, $packageDir)
 $references = Join-Path $packageDir 'build/.NETFramework/v4.5.1'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework/v4.0.30319/csc.exe'
@@ -75,7 +76,21 @@ if ($Package) {
     Copy-Item $exe, (Join-Path $out 'Lean81.exe.config'), 'LICENSE', 'docs/QUICKSTART.txt', 'docs/RECOVERY.md', 'docs/COMPATIBILITY.md', 'docs/FEATURES.md', 'docs/PRIVACY.md' $portable
     $zip = Join-Path $out ('Lean81-' + $version + '-portable.zip')
     if (Test-Path $zip) { Remove-Item $zip }
-    [IO.Compression.ZipFile]::CreateFromDirectory($portable, $zip, [IO.Compression.CompressionLevel]::Optimal, $true)
+    # Use ZIP-standard forward slashes even under legacy Framework/PowerShell ZIP behavior.
+    $zipStream = [IO.File]::Open($zip, [IO.FileMode]::CreateNew)
+    $archive = New-Object IO.Compression.ZipArchive($zipStream, [IO.Compression.ZipArchiveMode]::Create, $false)
+    try {
+        foreach ($file in (Get-ChildItem $portable -File | Sort-Object Name)) {
+            $entryName = (Split-Path $portable -Leaf) + '/' + $file.Name
+            [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, $entryName, [IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        }
+    } finally { $archive.Dispose(); $zipStream.Dispose() }
+    $roundTrip = Join-Path $out 'portable-verification'
+    if (Test-Path $roundTrip) { Remove-Item -Recurse -Force $roundTrip }
+    [IO.Compression.ZipFile]::ExtractToDirectory($zip, $roundTrip)
+    $extractedExe = Join-Path (Join-Path $roundTrip (Split-Path $portable -Leaf)) 'Lean81.exe'
+    if ((Get-FileHash $exe -Algorithm SHA256).Hash -ne (Get-FileHash $extractedExe -Algorithm SHA256).Hash) { throw 'Extracted portable executable differs from the verified build.' }
+    Remove-Item -Recurse -Force $roundTrip
     $sourceZip = Join-Path $out ('Lean81-' + $version + '-source.zip')
     & git archive --format=zip ('--prefix=Lean81-' + $version + '-source/') ('--output=' + $sourceZip) HEAD
     if ($LASTEXITCODE -ne 0) { throw 'Source archive failed.' }

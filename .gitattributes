@@ -1,0 +1,2 @@
+# Publication requests are CI control metadata, separate from an archived source release.
+release/preview.json export-ignore
