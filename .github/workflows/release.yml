@@ -1,0 +1,68 @@
+name: Publish reviewed preview
+on:
+  push:
+    branches: [main]
+    paths: ['release/preview.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: lean81-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify reviewed source and successful Windows checks
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $spec = Get-Content 'release/preview.json' -Raw | ConvertFrom-Json
+          if ($spec.version -ne '0.1.0' -or $spec.source_sha -notmatch '^[0-9a-f]{40}$' -or $spec.gui_reviewed -ne $true) { throw 'Unsupported or unreviewed release request.' }
+          git merge-base --is-ancestor $spec.source_sha HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed source is not an ancestor of this request.' }
+          $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs?head_sha=$($spec.source_sha)&per_page=30" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot verify source checks.' }
+          $green = @($runs.workflow_runs | Where-Object { $_.name -eq 'Windows build and checks' -and $_.head_branch -eq 'main' -and $_.status -eq 'completed' -and $_.conclusion -eq 'success' })
+          if ($green.Count -eq 0) { throw 'Reviewed source lacks successful Windows checks.' }
+          $tag = 'v' + $spec.version
+          $existing = git ls-remote --tags origin "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0 -or $existing) { throw 'Cannot publish: tag exists or remote lookup failed. Existing releases are never overwritten.' }
+          "LEAN81_SOURCE=$($spec.source_sha)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ env.LEAN81_SOURCE }}
+          persist-credentials: false
+      - name: Rebuild and verify the exact reviewed source
+        shell: powershell
+        env:
+          LEAN81_NATIVE_FIXTURES: ephemeral-ci
+        run: ./scripts/build.ps1 -Test -Native -Gui -Package
+      - name: Publish preview assets without replacing an existing release
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $head = (git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $head -ne $env:LEAN81_SOURCE) { throw 'Source checkout mismatch.' }
+          $files = @('artifacts/Lean81.exe', 'artifacts/Lean81-0.1.0-portable.zip', 'artifacts/Lean81-0.1.0-source.zip', 'artifacts/SHA256SUMS.txt')
+          foreach ($file in $files) { if (!(Test-Path $file)) { throw "Missing release asset: $file" } }
+          gh release create v0.1.0 @files --repo $env:GITHUB_REPOSITORY --target $head --title 'Lean81 0.1.0 preview' --prerelease --latest=false --notes-file docs/RELEASE-0.1.0.md
+          if ($LASTEXITCODE -ne 0) { throw 'Preview publication failed.' }
+      - name: Retain release verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Lean81-release-verification
+          path: |
+            artifacts/tests.txt
+            artifacts/gui/
+            artifacts/SHA256SUMS.txt

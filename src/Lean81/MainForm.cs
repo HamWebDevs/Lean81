@@ -208,6 +208,7 @@ namespace Lean81
                     if (!item.CanChange) row.DefaultCellStyle.ForeColor = Muted;
                     row.Cells[0].ToolTipText = item.CanChange ? "Select for review" : "Kept, protected, missing or already disabled";
                 }
+                grid.ClearSelection(); if (grid.Rows.Count > 0) grid.Rows[0].Selected = true;
             };
             grid.CurrentCellDirtyStateChanged += (s, e) => { if (grid.IsCurrentCellDirty) grid.CommitEdit(DataGridViewDataErrorContexts.Commit); };
             grid.CellValueChanged += (s, e) =>
@@ -302,7 +303,8 @@ namespace Lean81
                 var note = LabelAt("Recovery receipts are private to administrators and SYSTEM. Enable changes to read or restore them.\n\nKeep the Lean81 folder in ProgramData: it holds the original settings needed for recovery.", 11); note.Dock = DockStyle.Top; note.Height = 100; body.Controls.Add(note);
                 var enable = ActionButton("Enable changes…", (s, e) => Elevate(), true); Rows(body, new Control[] { note, enable }, -1, 40); return;
             }
-            var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Date", "Created (UTC)"); grid.Columns.Add("Count", "Items"); grid.Columns.Add("Status", "Status"); grid.Columns.Add("Id", "Receipt"); grid.Columns[1].FillWeight = 10; grid.Columns[3].FillWeight = 38;
+            var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Date", "Created (UTC)"); grid.Columns.Add("Count", "Items"); grid.Columns.Add("Status", "Status"); grid.Columns.Add("Id", "Receipt");
+            grid.Columns[0].FillWeight = 32; grid.Columns[1].FillWeight = 10; grid.Columns[1].MinimumWidth = 60; grid.Columns[2].FillWeight = 22; grid.Columns[3].FillWeight = 36;
             var detail = new TextBox { Dock = DockStyle.Bottom, Height = 100, Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical }; body.Controls.Add(detail);
             var actions = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 48 };
             actions.Controls.Add(ActionButton("Restore selected receipt…", async (s, e) =>
@@ -320,6 +322,7 @@ namespace Lean81
             }
             catch (Exception ex) { detail.Text = "Receipts unavailable: " + Product.Clean(ex.Message, 400); }
             grid.SelectionChanged += (s, e) => { if (grid.SelectedRows.Count == 0) return; var r = grid.SelectedRows[0].Tag as ChangeReceipt; if (r != null) detail.Text = String.Join(Environment.NewLine, r.Entries.Select(x => x.Name + " · " + x.Status + (x.Error == null ? "" : " · " + x.Error))); };
+            grid.ClearSelection(); if (grid.Rows.Count > 0) grid.Rows[0].Selected = true;
             Rows(body, new Control[] { grid, detail, actions }, -1, 100, 48);
         }
         bool ReviewDialog(string title, string[] entries, string explanation, string screenshot = null)
@@ -332,6 +335,7 @@ namespace Lean81
                 var apply = ActionButton(title.StartsWith("Restore", StringComparison.Ordinal) ? "Restore settings" : "Apply selected changes", (s, e) => dialog.DialogResult = DialogResult.OK, true);
                 var cancel = ActionButton("Cancel", (s, e) => dialog.DialogResult = DialogResult.Cancel); controls.Controls.Add(apply); controls.Controls.Add(cancel);
                 var panel = new Panel { Dock = DockStyle.Fill }; Rows(panel, new Control[] { header, list, controls }, 70, -1, 55); dialog.Controls.Add(panel); dialog.CancelButton = cancel;
+                dialog.Shown += (s, e) => { list.SelectionLength = 0; cancel.Focus(); };
                 using (var timer = new System.Windows.Forms.Timer { Interval = 150 })
                 {
                     if (screenshot != null)

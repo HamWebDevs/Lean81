@@ -31,6 +31,15 @@ static class Tests
         public void Restore(ItemState s) { Writes++; if (OnWrite != null) OnWrite(); States[s.Identity()] = s.Copy(); }
         public ScanReport Scan(UsageProfile p) { return new ScanReport(); }
     }
+    sealed class FailingJournals : IJournalStore
+    {
+        public readonly MemoryJournals Inner = new MemoryJournals();
+        public int Saves, FailAt;
+        public IDisposable Lock() { return Inner.Lock(); }
+        public void Save(ChangeReceipt r, bool create) { if (++Saves >= FailAt && FailAt > 0) throw new IOException("fixture disk failure"); Inner.Save(r, create); }
+        public ChangeReceipt Load(string id) { return Inner.Load(id); }
+        public IList<ChangeReceipt> List() { return Inner.List(); }
+    }
     static void MainCore()
     {
         Test("defaults keep every optional feature", () => Assert(new[] { "printing", "bluetooth", "search", "touch", "homegroup", "media", "offline", "prefetch", "unknown" }.All(new UsageProfile().Uses)));
@@ -71,6 +80,21 @@ static class Tests
             var s = Startup(); var b = new Fake(s); var j = new MemoryJournals();
             b.OnWrite = () => { var saved = j.List().Single(); Assert(saved.Status == "Applying" && saved.Entries.Single().Original.Fingerprint() == s.Fingerprint()); };
             Assert(new ChangeEngine(b, j).Apply(new[] { Item(s) }, Unused(), null).Status == "Applied");
+        });
+        Test("journal creation failure prevents all writes", () => { var s = Startup(); var b = new Fake(s); var j = new FailingJournals { FailAt = 1 }; Throws(() => new ChangeEngine(b, j).Apply(new[] { Item(s) }, Unused(), null)); Assert(b.Writes == 0 && j.List().Count == 0); });
+        Test("intent update failure prevents system write", () => { var s = Startup(); var b = new Fake(s); var j = new FailingJournals { FailAt = 2 }; Throws(() => new ChangeEngine(b, j).Apply(new[] { Item(s) }, Unused(), null)); Assert(b.Writes == 0 && j.List().Single().Status == "Prepared"); });
+        Test("post-write journal failure remains recoverable", () => { var s = Startup(); var b = new Fake(s); var j = new FailingJournals { FailAt = 3 }; var e = new ChangeEngine(b, j); Throws(() => e.Apply(new[] { Item(s) }, Unused(), null)); Assert(b.Writes == 1 && j.List().Single().Status == "Applying"); j.FailAt = 0; Assert(e.Restore(j.List().Single().Id, null).Status == "Restored" && b.Read(s).Fingerprint() == s.Fingerprint()); });
+        Test("mixed batch restores service, task and Run state exactly", () =>
+        {
+            var states = new[] { Service(), TaskState(), Startup() }; var b = new Fake(states); var e = new ChangeEngine(b, new MemoryJournals());
+            var r = e.Apply(states.Select(Item).ToArray(), Unused(), null); Assert(r.Status == "Applied");
+            Assert(e.Restore(r.Id, null).Status == "Restored"); Assert(states.All(s => b.Read(s).Fingerprint() == s.Fingerprint()));
+        });
+        Test("manual stopped service stays stopped after recovery", () =>
+        {
+            var s = Service(); s.StartType = 3; s.Delayed = false; s.Running = false;
+            var b = new Fake(s); var e = new ChangeEngine(b, new MemoryJournals()); var r = e.Apply(new[] { Item(s) }, Unused(), null);
+            Assert(e.Restore(r.Id, null).Status == "Restored" && b.Read(s).StartType == 3 && !b.Read(s).Running);
         });
         Test("nonadmin apply refused before journaling", () => { var s = Startup(); var b = new Fake(s) { Admin = false }; var j = new MemoryJournals(); Throws(() => new ChangeEngine(b, j).Apply(new[] { Item(s) }, Unused(), null)); Assert(b.Writes == 0 && j.List().Count == 0); });
         Test("empty selection refused", () => Throws(() => new ChangeEngine(new Fake(), new MemoryJournals()).Apply(new ScanItem[0], Unused(), null)));

@@ -4,7 +4,11 @@
 
 Lean81 is a small native Windows app for inspecting background load and making deliberate, reversible changes. Built for Windows 8.1 laptops with limited CPU and memory. C# / Windows Forms, no Python runtime, bundled browser, telemetry, account or permanent service.
 
-[Download the latest preview](https://github.com/HamWebDevs/Lean81/releases/latest) · [Quick start](docs/QUICKSTART.txt) · [Recovery](docs/RECOVERY.md) · [Compatibility](docs/COMPATIBILITY.md)
+[Download the preview](https://github.com/HamWebDevs/Lean81/releases/tag/v0.1.0) · [Quick start](docs/QUICKSTART.txt) · [Recovery](docs/RECOVERY.md) · [Compatibility](docs/COMPATIBILITY.md)
+
+![Lean81 overview in synthetic demo mode](docs/screenshots/overview.png)
+
+Screenshots show the actual Windows app with synthetic demo data.
 
 ## What you can do
 
@@ -16,6 +20,8 @@ Lean81 is a small native Windows app for inspecting background load and making d
 - Review every selected change and its tradeoff, save original settings before writing, and restore them through conflict-aware recovery.
 
 Nothing is disabled automatically. Lean81 does not promise a faster CPU: an idle background item may cost almost nothing. Capture the same workload before and after to see which changes help your machine.
+
+![Lean81 CPU capture with synthetic data](docs/screenshots/cpu-capture.png)
 
 ## Run it
 
