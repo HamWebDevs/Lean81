@@ -15,6 +15,7 @@ namespace Lean81
         static readonly SecurityIdentifier SystemAccount = new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null);
         public JournalStore(string machineScope)
         {
+            if (machineScope == null || machineScope.Length != 64 || machineScope.Any(c => !"0123456789abcdef".Contains(c))) throw new ArgumentException("Invalid machine/user journal scope.", "machineScope");
             scope = machineScope;
             directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Lean81");
         }
@@ -64,7 +65,7 @@ namespace Lean81
         string ReceiptPath(string id)
         {
             Guid guid; if (!Guid.TryParseExact(id, "N", out guid)) throw new InvalidOperationException("Invalid receipt ID.");
-            return Path.Combine(directory, guid.ToString("N") + ".json");
+            return Path.Combine(directory, scope + "-" + guid.ToString("N") + ".json");
         }
         public IDisposable Lock()
         {
@@ -107,7 +108,7 @@ namespace Lean81
         public IList<ChangeReceipt> List()
         {
             EnsureDirectory(); var result = new List<ChangeReceipt>();
-            foreach (var path in Directory.EnumerateFiles(directory, "*.json").Take(500)) result.Add(Load(Path.GetFileNameWithoutExtension(path)));
+            foreach (var path in Directory.EnumerateFiles(directory, scope + "-*.json").Take(500)) result.Add(Load(Path.GetFileNameWithoutExtension(path).Substring(scope.Length + 1)));
             return result.OrderByDescending(r => r.CreatedUtc, StringComparer.Ordinal).ToList();
         }
     }

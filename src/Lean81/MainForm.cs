@@ -140,6 +140,7 @@ namespace Lean81
             buttons.Controls.Add(ActionButton("Scan this laptop", async (s, e) => await Scan(), true));
             if (!backend.IsAdministrator && !demo) buttons.Controls.Add(ActionButton("Enable changes…", (s, e) => Elevate()));
             else buttons.Controls.Add(ActionButton("Set usage profile", (s, e) => ShowPage(1)));
+            buttons.Controls.Add(ActionButton("Scan notes" + (report == null ? "" : " (" + report.Notes.Count + ")"), (s, e) => ShowScanNotes()));
             body.Controls.Add(buttons);
             var next = new Panel { Dock = DockStyle.Bottom, Height = 153, BackColor = Color.White, Padding = new Padding(18) };
             var hint = LabelAt("1   Scan your laptop\n2   Mark the features you don't use\n3   Select items and review their tradeoffs\n4   Capture CPU use before and after", 11); hint.Dock = DockStyle.Fill; next.Controls.Add(hint); body.Controls.Add(next);
@@ -389,6 +390,16 @@ namespace Lean81
             try { Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"), "\"" + Environment.GetFolderPath(Environment.SpecialFolder.Startup) + "\"") { UseShellExecute = true }); } catch (Exception ex) { Error(ex); }
         }
         void Error(Exception ex) { MessageBox.Show(this, Product.Clean(ex.Message, 700), "Lean81", MessageBoxButtons.OK, MessageBoxIcon.Information); }
+        void ShowScanNotes()
+        {
+            using (var dialog = new Form { Text = "Scan notes", ClientSize = new Size(650, 410), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(20), MinimizeBox = false, MaximizeBox = false })
+            {
+                var text = new TextBox { Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical,
+                    Text = report == null ? "Scan this laptop to see inventory notes." : String.Join("\r\n\r\n", report.Notes) };
+                var close = ActionButton("Close", (s, e) => dialog.Close());
+                var panel = new Panel { Dock = DockStyle.Fill }; Rows(panel, new Control[] { text, close }, -1, 40); dialog.Controls.Add(panel); dialog.CancelButton = close; dialog.ShowDialog(this);
+            }
+        }
         internal void SmokePage(int index)
         {
             capture = CaptureResult.Demo();

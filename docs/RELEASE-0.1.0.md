@@ -10,7 +10,7 @@ Included:
 - Explicit review, protected recovery receipts, fresh-state checks and exact-state recovery.
 - Synthetic demo: `Lean81.exe --demo`.
 
-This is an **unsigned preview targeting Windows 8.1 and .NET Framework 4.5.1**. Physical Windows 8.1 validation is pending. Automated testing uses Windows Server 2022: 53 core policy/transaction tests, six native fixture/capture/storage checks, a native-suite completion check, eight rendered pages, a cancelled review dialog and a small-window layout check. Native tests only change disposable Run/task fixtures; they never toggle an installed service.
+This is an **unsigned preview targeting Windows 8.1 and .NET Framework 4.5.1**. Physical Windows 8.1 validation is pending. Automated testing uses Windows Server 2022: 53 core policy/transaction tests, seven native fixture/capture/storage checks, a native-suite completion check, eight rendered pages, a cancelled review dialog and a small-window layout check. Native tests only change disposable Run/task fixtures; they never toggle an installed service.
 
 Start by scanning. Keep uncertain features checked in Usage profile, and read each selected item's tradeoff. No changes are applied automatically, and no performance improvement is promised without measurements on your laptop. Keep `%ProgramData%\Lean81` for recovery; its private receipt JSON can contain startup commands and should not be shared.
 
