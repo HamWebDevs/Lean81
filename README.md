@@ -4,21 +4,20 @@
 
 Lean81 is a small native Windows app for inspecting background load and making deliberate, reversible changes. Built for Windows 8.1 laptops with limited CPU and memory. C# / Windows Forms, no Python runtime, bundled browser, telemetry, account or permanent service.
 
-[Download the preview](https://github.com/HamWebDevs/Lean81/releases/tag/v0.2.0) · [Quick start](docs/QUICKSTART.txt) · [Recovery](docs/RECOVERY.md) · [Compatibility](docs/COMPATIBILITY.md)
+[Download the preview](https://github.com/HamWebDevs/Lean81/releases/tag/v0.3.0) · [Quick start](docs/QUICKSTART.txt) · [Recovery](docs/RECOVERY.md) · [Compatibility](docs/COMPATIBILITY.md)
 
 ![Lean81 overview in synthetic demo mode](docs/screenshots/overview.png)
 
 Screenshots show the actual Windows app with synthetic demo data.
 
-## New in 0.2.0
+## New in 0.3.0
 
-- **Quick setup:** choose a usage preset, check your answers and review the matching services.
-- **Recommendations:** plain-language next steps based on the scan, storage capacity and CPU observations.
-- **Saved results:** up to 12 local CPU summaries, a retained baseline and comparisons that check workload, duration, power, coverage and hardware.
-- **Device & storage:** CPU, RAM, uptime, power/battery and fixed-drive capacity snapshots.
-- **Reports & CSV:** export a local HTML report or a spreadsheet of CPU samples. Software/process names stay opt-in.
-- **Clearer choices:** explanations for kept entries, selectable-only filters, app search, non-admin reviews and saveable review text.
-- **Help & tools:** nine Windows tools, in-app guidance and recovery-state checks without applying settings.
+- **A clearer laptop report:** next steps, CPU evidence, device/storage observations and inventory coverage in a responsive, printable offline document.
+- **Baseline evidence:** export the selected saved result with the baseline and the same condition checks used in the app. Mismatches show reasons instead of misleading differences.
+- **Optional history:** include up to 12 aggregate observations without workload labels or machine identifiers. Software names stay a separate opt-in.
+- **Measurement context:** completion, valid samples, observed time, power and observer cost remain visible alongside each current result.
+
+Guided setup, usage presets, CPU captures, recovery and Windows-tool shortcuts remain available.
 
 [Feature guide](docs/FEATURES.md) · [Privacy and local data](docs/PRIVACY.md)
 
@@ -41,7 +40,7 @@ Nothing is disabled automatically. Lean81 does not promise a faster CPU: an idle
 
 ## Run it
 
-1. Download and extract **Lean81-0.2.0-portable.zip** from Releases.
+1. Download and extract **Lean81-0.3.0-portable.zip** from Releases.
 2. Open **Lean81.exe** and choose **Quick setup**. Scans and captures work without administrator rights.
 3. Keep uncertain features checked. Presets only fill answers; they never apply settings.
 4. Select recognized startup items or unused services, then choose **Review changes**. Enable changes when ready.
@@ -50,7 +49,7 @@ Nothing is disabled automatically. Lean81 does not promise a faster CPU: an idle
 
 The release also includes a standalone **Lean81.exe**. Windows 8.1 includes the target .NET Framework 4.5.1. The portable ZIP includes the runtime-selection configuration, local instructions, feature/privacy guides and license. No install step is needed. For a safe tour, run `Lean81.exe --demo` with synthetic data.
 
-**0.2.0 is an unsigned preview.** The code and managed APIs target Windows 8.1. Automated Windows checks run on Server 2022; physical Windows 8.1 validation is pending. See [compatibility and limits](docs/COMPATIBILITY.md) before applying changes.
+**0.3.0 is an unsigned preview.** The code and managed APIs target Windows 8.1. Automated Windows checks run on Server 2022; physical Windows 8.1 validation is pending. See [compatibility and limits](docs/COMPATIBILITY.md) before applying changes.
 
 ## Deliberate boundaries
 

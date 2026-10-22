@@ -1,4 +1,4 @@
-Lean81 0.2.0 preview - HamWebDevs
+Lean81 0.3.0 preview - HamWebDevs
 
 GET STARTED
 1. Extract the portable ZIP and open Lean81.exe.
@@ -22,7 +22,9 @@ MORE FEATURES
 Recommendations: next steps based on your scan and observations.
 Device & storage: CPU, RAM, uptime, battery/power and fixed-drive free space.
 Installed apps: filter by name or publisher; use the normal Windows uninstaller.
-Export report: local HTML, with software names omitted by default.
+Export report: printable local HTML with next steps and CPU coverage.
+Saved results: Export selected can include the baseline and optional history.
+Names are omitted by default; workload labels and machine IDs are withheld.
 Export trace: ReclaimLab JSONL or CSV; process names omitted by default.
 Help & tools: built-in guidance and nine fixed Windows tool shortcuts.
 Recovery: check saved states without writes, or restore exact original settings.

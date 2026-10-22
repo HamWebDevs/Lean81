@@ -183,23 +183,30 @@ namespace Lean81
             actions.Controls.Add(ActionButton("Use as baseline", (s, e) => { if (grid.SelectedRows.Count == 0) return; var result = grid.SelectedRows[0].Tag as CaptureSummary; if (result == null) return; workspace.BaselineId = result.Id; bool persisted = SaveWorkspace(); foreach (DataGridViewRow row in grid.Rows) row.Cells[4].Value = ResultState((CaptureSummary)row.Tag); detail.Text = (persisted ? "Baseline saved: " : "Baseline for this session: ") + result.Workload + "\r\n" + result.CreatedUtc + "\r\nNow repeat the same activity, duration and power state, then compare another saved result."; status.Text = persisted ? "Baseline saved locally" : preferencesNotice; }));
             actions.Controls.Add(ActionButton("Compare selected", (s, e) => { if (grid.SelectedRows.Count == 0) return; var baseline = workspace.History.FirstOrDefault(r => r.Id == workspace.BaselineId); if (baseline == null) { detail.Text = "Choose a result and click Use as baseline first."; return; } detail.Text = CaptureComparison.Compare(baseline, (CaptureSummary)grid.SelectedRows[0].Tag).Text(); }, true));
             actions.Controls.Add(ActionButton("Delete selected result", (s, e) => { if (grid.SelectedRows.Count == 0) return; var result = (CaptureSummary)grid.SelectedRows[0].Tag; workspace.History.Remove(result); if (workspace.BaselineId == result.Id) workspace.BaselineId = null; SaveWorkspace(); ShowPage(6); ((TabControl)pageLayout.GetControlFromPosition(0, 2)).SelectedIndex = 1; }));
+            actions.Controls.Add(ActionButton("Export selected…", (s, e) => { if (grid.SelectedRows.Count > 0) ExportReport((CaptureSummary)grid.SelectedRows[0].Tag); }));
             Rows(body, new Control[] { grid, detail, actions }, -1, 138, 46);
             grid.ClearSelection(); if (grid.Rows.Count > 0) grid.Rows[0].Selected = true;
         }
         string ResultState(CaptureSummary result) { return result.Power + (result.Synthetic ? " · demo" : "") + (result.Id == workspace.BaselineId ? " · baseline" : !result.Complete ? " · partial" : ""); }
-        void ExportReport()
+        void ExportReport(CaptureSummary selectedResult = null, string screenshot = null)
         {
             if (report == null) { status.Text = "Scan this laptop before exporting a report."; return; }
-            using (var options = new Form { Text = "Export laptop report", ClientSize = new Size(560, 220), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
+            var current = selectedResult ?? latestSummary ?? workspace.History.FirstOrDefault();
+            var baseline = workspace.History.FirstOrDefault(r => r.Id == workspace.BaselineId);
+            using (var options = new Form { Text = "Export laptop report", ClientSize = new Size(610, 340), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
             {
-                var text = LabelAt("The HTML report includes device capacity, inventory counts and CPU summary numbers. Startup commands, paths, task XML and recovery receipts are excluded. No upload is performed.", 10);
+                var text = LabelAt("Save a self-contained HTML report with next steps, device capacity and CPU evidence. Open or print it in a browser. Commands, paths, receipts, workload labels and machine identifiers are excluded.", 10);
+                var comparison = new CheckBox { Text = baseline == null ? "Baseline comparison (choose a baseline in Saved results first)" : "Include baseline comparison and condition checks", AutoSize = true, Checked = baseline != null && current != null, Enabled = baseline != null && current != null };
+                var history = new CheckBox { Text = "Include saved aggregate history (up to 12 results)", AutoSize = true };
                 var names = new CheckBox { Text = "Include software names in this report", AutoSize = true };
+                var privacy = LabelAt("Review the report before sharing: hardware details and capture dates remain visible.\nNo upload is performed. Mismatched captures show reasons instead of differences.", 9);
                 var buttons = new FlowLayoutPanel { FlowDirection = FlowDirection.RightToLeft }; var cancel = ActionButton("Cancel", (s, e) => options.DialogResult = DialogResult.Cancel);
                 buttons.Controls.Add(ActionButton("Choose file…", (s, e) => options.DialogResult = DialogResult.OK, true)); buttons.Controls.Add(cancel);
-                var panel = new Panel { Dock = DockStyle.Fill }; Rows(panel, new Control[] { text, names, buttons }, -1, 40, 40); options.Controls.Add(panel); options.CancelButton = cancel;
+                var panel = new Panel { Dock = DockStyle.Fill }; Rows(panel, new Control[] { text, comparison, history, names, privacy, buttons }, -1, 33, 33, 33, 52, 40); options.Controls.Add(panel); options.CancelButton = cancel;
+                if (screenshot != null) AutoScreenshotAndCancel(options, screenshot);
                 if (options.ShowDialog(this) != DialogResult.OK) return;
                 using (var save = new SaveFileDialog { Filter = "Local HTML report (*.html)|*.html", FileName = "lean81-report-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".html" })
-                    if (save.ShowDialog(this) == DialogResult.OK) try { File.WriteAllText(save.FileName, Reports.Build(report, device, latestSummary ?? workspace.History.FirstOrDefault(), names.Checked, demo), new UTF8Encoding(false)); status.Text = "Report saved locally · review it before sharing"; } catch (Exception ex) { Error(ex); }
+                    if (save.ShowDialog(this) == DialogResult.OK) try { File.WriteAllText(save.FileName, Reports.Build(report, device, current, comparison.Checked ? baseline : null, workspace.History, profile, new ReportOptions { IncludeSoftwareNames = names.Checked, IncludeHistory = history.Checked, Synthetic = demo }), new UTF8Encoding(false)); status.Text = "Report saved locally · open it in your browser to read or print"; } catch (Exception ex) { Error(ex); }
             }
         }
         void ToolsPage()
@@ -234,6 +241,20 @@ namespace Lean81
         internal void SmokeComparisonScreenshot(string path)
         {
             SmokePage(6); var tabs = pageLayout.GetControlFromPosition(0, 2) as TabControl; tabs.SelectedIndex = 1; Refresh(); ValidateSmokeLayout(); SaveScreenshot(path);
+        }
+        internal void SmokeReport(string directory)
+        {
+            if (!demo) throw new InvalidOperationException("Synthetic mode required.");
+            string before = Product.Json().Serialize(workspace);
+            ExportReport(null, Path.Combine(directory, "report-options.png"));
+            if (before != Product.Json().Serialize(workspace)) throw new InvalidOperationException("Cancelled report options changed the workspace.");
+            var baseline = CaptureSummary.From(CaptureResult.Demo(), "Report fixture", CaptureMachineKey);
+            var current = CaptureSummary.From(CaptureResult.Demo(), "Report fixture", CaptureMachineKey); current.AverageCpu -= 5;
+            var options = new ReportOptions { IncludeHistory = true, Synthetic = true };
+            File.WriteAllText(Path.Combine(directory, "report-demo.html"), Reports.Build(report, device, current, baseline, new[] { current, baseline }, profile, options), new UTF8Encoding(false));
+            current.Power = "battery";
+            File.WriteAllText(Path.Combine(directory, "report-mismatched.html"), Reports.Build(report, device, current, baseline, new[] { current, baseline }, profile, options), new UTF8Encoding(false));
+            File.WriteAllText(Path.Combine(directory, "report-no-capture.html"), Reports.Build(report, null, null, false, true), new UTF8Encoding(false));
         }
         static System.Collections.Generic.IEnumerable<Control> Descendants(Control root)
         { foreach (Control child in root.Controls) { yield return child; foreach (var nested in Descendants(child)) yield return nested; } }
