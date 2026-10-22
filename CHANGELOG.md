@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — preview
+
+- Redesign local HTML reports with responsive cards, next steps, section navigation, accessible tables and print layout.
+- Export a selected saved result with its baseline; reuse comparison checks and explain mismatched or incomplete observations without generating deltas.
+- Add opt-in aggregate history, explicit sample/completion/power/observer coverage and separate scan/device/capture timestamps.
+- Withhold workload labels and machine identities in every report mode. Keep software names opt-in, encode text and prohibit scripts/remote resources through content policy.
+- Extend isolated report checks and GUI export-dialog cancellation; retain generated full/partial report evidence for browser review.
+- Keep native Windows 8.1 targeting, recovery schemas and deliberate change controls. Physical Windows 8.1 validation is pending.
+
 ## 0.2.0 — preview
 
 - Guided quick setup, remembered usage answers and three conservative presets.

@@ -1,4 +1,4 @@
-# Using Lean81 0.2
+# Using Lean81 0.3
 
 ## Start with three choices
 
@@ -46,7 +46,7 @@ No disk-health, SSD, SMART or temperature diagnosis is inferred from capacity. *
 
 ## Export and share
 
-- **Export report:** a standalone local HTML report of device/capacity information, inventory counts and a CPU summary. Software names are omitted by default. Raw startup commands, command-path fields, task XML, receipts, account details, scan-error text and workload labels are excluded. Review the report before sharing it.
+- **Export report:** a responsive, printable local HTML report with recommendations, scan/device/capture timestamps, inventory coverage and CPU evidence. From Saved results, use **Export selected** to choose which result is included. Include the retained baseline to apply the same comparison checks used in the app; mismatches show reasons without differences. Aggregate history is a separate opt-in, with up to 12 numbered observations. Workload labels and machine identities are always withheld. Software names are omitted by default. Raw startup commands, command-path fields, task XML, receipts, account details, scan-error text and workload labels are excluded. Review the report before sharing it.
 - **Export trace → JSONL:** compatible with ReclaimLab schema 1. CPU, available memory, power and process observations are included. Process names are omitted unless explicitly selected. It includes process IDs and memory sizes as described in the dialog.
 - **Export trace → CSV:** numeric sample timeline for a spreadsheet, plus the highest observed process per sample. Names stay opt-in; strings are quoted and formula-leading names are neutralized.
 - **Save review:** human-readable names and tradeoffs. It is a document for review, not an executable or importable change plan.

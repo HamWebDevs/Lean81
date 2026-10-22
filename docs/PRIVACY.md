@@ -13,7 +13,7 @@ Preferences are ordinary local application data, not encrypted secrets. Workload
 
 Demo mode uses synthetic data and in-memory settings/receipts. It does not write the production settings directory, change Windows or launch system tools.
 
-HTML reports omit software names by default, encode optional names and contain no external resources. They do not export raw command/path/task/receipt fields, account data, workload labels or scan error messages. Explicitly included software names may still identify personal projects, so review before sharing.
+HTML reports omit software names by default, encode optional names and contain no external resources. They do not export raw command/path/task/receipt fields, account data, workload labels, stored machine/hardware identities or scan error messages. Baseline comparisons use those identities only for local validation. Optional history contains numbered aggregate observations, not labels or IDs. Hardware descriptions, scan/device/capture timestamps and usage-derived next steps remain visible. Reports have no scripts; a restrictive content policy blocks remote resources and executable content. Explicitly included software names may still identify personal projects, so review before sharing.
 
 JSONL traces omit process names by default, but include numeric process IDs and working-set sizes. CSV exports omit names by default and neutralize formula-leading names when names are included. Neither format includes startup commands or executable-path fields. A text review contains names and tradeoffs from the selected review, never an executable action plan.
 

@@ -16,6 +16,7 @@ static partial class Tests
     }
     static void FeatureTests()
     {
+        ReportTests();
         Test("keep-all preset retains optional features", () => Assert(FeatureFlags(Profiles.Preset(0)).All(x => x)));
         Test("sharing preset retains printing, search and preloading", () => { var p = Profiles.Preset(1); Assert(p.Printing && p.IndexedSearch && p.Prefetch && p.Bluetooth && p.TouchKeyboard && !p.HomeGroup && !p.MediaSharing && !p.OfflineFiles); });
         Test("wireless-extras preset requires explicit Bluetooth and touch review", () => { var p = Profiles.Preset(2); Assert(!p.Bluetooth && !p.TouchKeyboard && p.Printing && p.IndexedSearch && p.Prefetch); });
