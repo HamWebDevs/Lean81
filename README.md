@@ -19,6 +19,8 @@ Screenshots show the actual Windows app with synthetic demo data.
 
 Guided setup, usage presets, CPU captures, recovery and Windows-tool shortcuts remain available.
 
+![Private local report choices in synthetic demo mode](docs/screenshots/report-options.png)
+
 [Feature guide](docs/FEATURES.md) · [Privacy and local data](docs/PRIVACY.md)
 
 ![Guided quick setup with synthetic choices](docs/screenshots/quick-setup.png)
