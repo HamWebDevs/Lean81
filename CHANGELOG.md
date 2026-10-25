@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0-rc.2 — interface preview
+
+- Redesign the desktop interface in charcoal and lime with drawn icons, grouped navigation, consistent buttons, tables, tabs, charts and dialogs.
+- Replace the long deep-tune checklist with Windows, Devices, Sharing and Apps groups, native accessible feature switches, three preset cards and an in-memory proposal summary.
+- Mark manually edited preset choices as custom without changing saved answers or applying anything.
+- Open on a snapshot dashboard with labelled CPU observations, available RAM and storage capacity, plus direct tuning and companion-closure shortcuts.
+- Hide empty inventory review controls, constrain layout to the available footer height and fit the initial window to the desktop working area.
+- Validate native accessibility actions, preset-card behavior, group navigation and minimum-window layouts. Keep rendering event driven, with no web view, downloaded assets or animation loop.
+
 ## 1.2.0-rc.1 — candidate
 
 - Combine deep-tune settings and selected running-companion closure in one review. Individual app checkboxes, keep-all and explicit force-close remain available.

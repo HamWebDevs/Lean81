@@ -1,5 +1,16 @@
 # Using Lean81 1.2 candidate
 
+## Interface in RC2
+
+Lean81 opens on **Dashboard**. CPU is the last observation average or **On demand** when no observation exists. Available RAM and storage are scan snapshots. These cards do not imply continuous monitoring or guaranteed gains.
+
+**Deep tune** has three starting cards plus the full preset list. **Windows**, **Devices**, **Sharing** and **Apps** group the feature switches. **KEEP** means used or uncertain; **UNUSED** makes the associated optional feature eligible for review. Editing a switch changes the preset label to **My feature choices**. It does not save answers or change Windows until you continue through the review.
+
+The preview summary uses the last scan and staged answers. **Review tune** refreshes the scan before presenting the actual changes. The empty inventory-review button is hidden; it returns when you select individual inventory items. **Running apps**, **Tune result** and **Recovery** retain their existing actions.
+
+The charcoal interface uses native controls and event-driven drawing. Feature switches retain native checkbox accessibility actions and keyboard behavior; focus indicators and KEEP/UNUSED text accompany color. Windows high-contrast colors and the native checkbox fallback are respected. High-DPI/high-contrast behavior on physical Windows 8.1 hardware still needs validation.
+
+
 ## Deep tune
 
 Open **Deep tune**, choose a preset if useful and check every answer. Checked means you use the feature, or want to keep it. Unticked means Lean81 may offer its installed optional service for disabling. A service with enabled dependents stays protected. A preset never applies settings.
@@ -14,7 +25,7 @@ Open **Deep tune**, choose a preset if useful and check every answer. Checked me
 
 The first four presets keep printing/PDF printers, indexed search, Superfetch and error reporting. Maximum reduction changes those answers as described below. The browser preset also keeps Bluetooth. Untick indexed search or Superfetch yourself if you want to test those tradeoffs. Preloading may help application launches; fewer enabled services does not automatically mean a faster laptop.
 
-**Reduce desktop effects** and recognized unused startup/task choices have separate checkboxes. **Review deep tune** refreshes the inventory and stages the actual installed choices. Read the exact tradeoffs, then apply. Nothing applies just by selecting a preset or building a review. Unknown startup apps and tasks require individual selection on their inventory pages.
+**Reduce desktop effects** and recognized unused startup/task choices have separate checkboxes. **Review tune** refreshes the inventory and stages the actual installed choices. Read the exact tradeoffs, then apply. Nothing applies just by selecting a preset or building a review. Unknown startup apps and tasks require individual selection on their inventory pages.
 
 Without administrator rights you can scan, capture, export and close eligible same-user companions. Setting changes require administrator rights. **Enable changes & rescan** opens Lean81 under the same Windows account. Answers are remembered; build the review again against the fresh elevated scan. No apply plan is imported from a file.
 

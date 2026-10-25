@@ -28,33 +28,29 @@ namespace Lean81
         }
         void Overview()
         {
-            Heading("Make room for what you use.", "Deep tune stops unused service groups and trims known background launches. Close selected companion apps inside Lean81.");
+            Heading("Dashboard", "Your laptop at a glance. Readings refresh on scan or capture; Lean81 does not keep a monitor running.");
             var body = new Panel(); Body(body);
-            var cards = new TableLayoutPanel { ColumnCount = 3, RowCount = 1 };
+            var cards = new TableLayoutPanel { ColumnCount = 3, RowCount = 1, Margin = Padding.Empty }; cards.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             for (int i = 0; i < 3; i++) cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
-            string[] labels = { "STARTUP TO REVIEW", "UNUSED SERVICES", "SAVED CAPTURES" };
-            int[] counts = { report == null ? 0 : report.Items.Count(x => x.Kind == "startup" && x.CanChange), report == null ? 0 : report.Items.Count(x => x.Kind == "service" && x.CanChange), workspace.History.Count };
-            for (int i = 0; i < 3; i++)
-            {
-                var panel = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(0, 0, i < 2 ? 12 : 0, 0), Padding = new Padding(14, 10, 8, 8) };
-                var caption = LabelAt(labels[i], 8.5f); caption.Height = 24;
-                var number = LabelAt(report == null && i < 2 ? "—" : counts[i].ToString(CultureInfo.InvariantCulture), 28, FontStyle.Bold); number.Height = 53;
-                panel.Controls.Add(number); panel.Controls.Add(caption); cards.Controls.Add(panel, i, 0);
-            }
-            var guide = new Panel { BackColor = Color.White, Padding = new Padding(16, 10, 12, 8) };
-            var text = LabelAt("1   Deep tune: choose what stays, review and apply\n2   Running apps: close selected background companions now\n3   Recovery: restore a complete tune when you need a feature back", 11); text.Dock = DockStyle.Fill; guide.Controls.Add(text);
+            var observed = lastSession != null && lastSession.After != null ? lastSession.After : capture;
+            bool memoryKnown = device != null && device.TotalMemory > 0 && device.AvailableMemory <= device.TotalMemory;
+            var cpu = ResourceAnalysis.Average(observed, "cpu_pct", 100); var drive = device == null ? null : device.Disks.OrderBy(d => d.Drive, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+            var cpuCard = new MetricCard { Caption = "CPU / LAST OBSERVATION", Value = cpu.HasValue ? cpu.Value.ToString("0.0", CultureInfo.InvariantCulture) + "%" : "On demand", Detail = cpu.HasValue ? (observed.Synthetic ? "Synthetic sample average" : "Average across the last observation") : "Check with a tune or resource capture", Glyph = 6, Ratio = cpu.HasValue ? cpu / 100 : null };
+            var ramCard = new MetricCard { Caption = "AVAILABLE RAM", Value = memoryKnown ? DeviceSnapshot.Size(device.AvailableMemory) : "Unavailable", Detail = memoryKnown ? DeviceSnapshot.Size(device.TotalMemory) + " installed / scan snapshot" : "Scan to read physical memory", Glyph = 16, Ratio = !memoryKnown ? null : (double?)(1.0 * device.AvailableMemory / device.TotalMemory) };
+            var diskCard = new MetricCard { Caption = "FREE STORAGE", Value = drive == null ? "—" : DeviceSnapshot.Size((ulong)drive.FreeBytes), Detail = drive == null ? "Scan to read fixed-drive capacity" : drive.Drive + " / capacity snapshot", Glyph = 15, Ratio = drive == null || drive.TotalBytes <= 0 ? null : (double?)(1.0 * drive.FreeBytes / drive.TotalBytes) };
+            var metrics = new[] { cpuCard, ramCard, diskCard }; for (int i = 0; i < metrics.Length; i++) { metrics[i].Dock = DockStyle.Fill; metrics[i].Margin = new Padding(0, 0, i < 2 ? 12 : 0, 0); cards.Controls.Add(metrics[i], i, 0); }
+            var paths = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 12, 0, 0) }; paths.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); paths.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); paths.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            var tune = new PresetControl { Text = "Reduce background load", Caption = "Choose features, startup items and apps", Dock = DockStyle.Fill, Margin = new Padding(0, 0, 12, 0), Launch = true }; tune.Click += (s, e) => ShowPage(11); paths.Controls.Add(tune, 0, 0);
+            var running = new PresetControl { Text = "Close unused companions", Caption = "Review what is running right now", Dock = DockStyle.Fill, Margin = Padding.Empty }; running.Click += (s, e) => ShowPage(13); paths.Controls.Add(running, 1, 0);
+            var activity = new SurfacePanel { Dock = DockStyle.Fill, Margin = new Padding(0, 12, 0, 12) };
+            var caption = LabelAt("BACKGROUND / LAST SCAN", 8.5f); caption.Height = 28; caption.ForeColor = Design.Accent;
+            var detail = LabelAt(report == null ? "Scan this laptop to load its background choices." : report.Items.Count(i => i.Kind == "startup" || i.Kind == "startupfile") + " startup entries   /   " + report.Items.Count(i => i.Kind == "service" && i.Before.Enabled) + " optional services enabled   /   " + runningApps.Count + " recognized processes", 10.5f); detail.Dock = DockStyle.Fill;
+            if (report != null) detail.Text += "\r\n\r\n" + (lastSession == null ? report.Notes.Count + " scan notes. Your selected settings are saved before they change." : "Last tune: " + lastSession.Summary());
+            detail.AutoEllipsis = true;
+            activity.Controls.Add(detail); activity.Controls.Add(caption);
             var actions = new FlowLayoutPanel { WrapContents = true };
-            actions.Controls.Add(ActionButton("Deep tune", (s, e) => ShowPage(11), true));
-            actions.Controls.Add(ActionButton("Recommendations", (s, e) => ShowPage(9)));
-            actions.Controls.Add(ActionButton("Close background apps", (s, e) => ShowPage(13)));
-            var second = new FlowLayoutPanel { WrapContents = true };
-            second.Controls.Add(ActionButton("Rescan laptop", async (s, e) => await Scan()));
-            second.Controls.Add(ActionButton("Export report…", (s, e) => ExportReport()));
-            second.Controls.Add(ActionButton("Scan notes", (s, e) => ShowScanNotes()));
-            var next = LabelAt(demo ? "SYNTHETIC DEMO · try the full workflow without system changes." : backend.IsAdministrator ? "Changes enabled · every selected change still needs review. Recovery holds the original settings." : "Inspection mode · scanning and resource captures need no admin rights. Enable changes from a review when ready.", 10);
-            if (preferencesNotice != null) next.Text += "\n" + preferencesNotice;
-            next.Padding = new Padding(2, 10, 0, 0);
-            Rows(body, new Control[] { cards, guide, next, actions, second }, 102, 105, -1, 48, 48);
+            actions.Controls.Add(ActionButton("Refresh scan", async (s, e) => await Scan())); actions.Controls.Add(ActionButton("Export report…", (s, e) => ExportReport())); actions.Controls.Add(ActionButton("Scan notes", (s, e) => ShowScanNotes())); actions.Controls.Add(ActionButton("Recovery", (s, e) => ShowPage(7)));
+            Rows(body, new Control[] { cards, new Panel(), paths, new Panel(), activity, new Panel(), actions }, 130, 10, 82, 10, -1, 10, 42);
         }
         static string[] FeatureLabels = { "Printing, including PDF / virtual printers", "Bluetooth devices", "Indexed file and email search", "Touch, pen or the on-screen keyboard", "HomeGroup sharing", "Windows Media Player network sharing", "Offline network files", "Application preloading / Superfetch", "Scanners or camera image-acquisition software", "Portable-device library synchronization", "Windows error reporting and diagnostic assistance", "Shortcuts that track moved files", "Optional diagnostic / experience reporting", "Windows Media Center TV and recordings", "Program compatibility help for older apps", "Automatic Windows diagnostic helpers", "Windows visual themes", "Third-party app update agents", "Local game launchers (Steam / Epic / GOG)", "Cloud-sync companion apps", "Chat companion apps", "Music companion apps" };
         static bool[] FeatureValues(UsageProfile p) { return new[] { p.Printing, p.Bluetooth, p.IndexedSearch, p.TouchKeyboard, p.HomeGroup, p.MediaSharing, p.OfflineFiles, p.Prefetch, p.Scanning, p.PortableDevices, p.ErrorReporting, p.LinkTracking, p.Telemetry, p.MediaCenter, p.Compatibility, p.DiagnosticHelpers, p.Themes, p.AppUpdaters, p.GameLaunchers, p.CloudSync, p.ChatApps, p.MusicApps }; }
@@ -63,21 +59,27 @@ namespace Lean81
         CheckBox[] FeatureChecks(FlowLayoutPanel host, UsageProfile initial)
         {
             var values = FeatureValues(initial); var checks = new CheckBox[FeatureLabels.Length];
-            for (int i = 0; i < checks.Length; i++) { checks[i] = new CheckBox { Text = FeatureLabels[i], Checked = values[i], AutoSize = true, Margin = new Padding(0, 3, 0, 5), MinimumSize = new Size(540, 25) }; host.Controls.Add(checks[i]); }
-            return checks;
+            for (int i = 0; i < checks.Length; i++) { checks[i] = MakeFeature(i, values[i]); host.Controls.Add(checks[i]); }
+            FitFeatureList(host); return checks;
         }
         ComboBox Presets(CheckBox[] checks)
         {
-            var presets = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 325, Margin = new Padding(0, 4, 12, 0) };
-            presets.Items.Add("Use my current answers"); presets.Items.AddRange(Profiles.Names); presets.SelectedIndex = 0;
-            presets.SelectedIndexChanged += (s, e) => { if (presets.SelectedIndex > 0) { var values = FeatureValues(Profiles.Preset(presets.SelectedIndex - 1)); for (int i = 0; i < checks.Length; i++) checks[i].Checked = values[i]; } };
+            var presets = new DesignComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 325, Margin = new Padding(0, 4, 12, 0) };
+            presets.Items.Add("My feature choices"); presets.Items.AddRange(Profiles.Names); presets.SelectedIndex = 0; bool applying = false;
+            presets.SelectedIndexChanged += (s, e) =>
+            {
+                if (presets.SelectedIndex <= 0) return; applying = true;
+                try { var values = FeatureValues(Profiles.Preset(presets.SelectedIndex - 1)); for (int i = 0; i < checks.Length; i++) checks[i].Checked = values[i]; }
+                finally { applying = false; }
+            };
+            foreach (var check in checks) check.CheckedChanged += (s, e) => { if (!applying) presets.SelectedIndex = 0; };
             return presets;
         }
         async Task QuickSetup(string screenshot = null)
         {
             if (busy) return;
             UsageProfile answers;
-            using (var dialog = new Form { Text = "Lean81 · quick setup", ClientSize = new Size(680, 525), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(20), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
+            using (var dialog = new StyledDialog { Text = "Lean81 · quick setup", ClientSize = new Size(680, 525), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(20), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
             {
                 var note = LabelAt("Keep each feature checked if you use it or aren't sure. Presets only fill these answers.\nNothing is disabled here. Next, review the specific services and their tradeoffs.", 10.5f);
                 var list = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, BackColor = Color.White, Padding = new Padding(14, 8, 8, 8) };
@@ -95,7 +97,7 @@ namespace Lean81
         }
         void Profile()
         {
-            Heading("What do you use?", "Keep uncertain features checked. Presets fill your answers; changes still need an individual review.");
+            Heading("Feature choices", "Keep uncertain features checked. Presets fill your answers; changes still need an individual review.");
             var body = new Panel(); Body(body);
             var list = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, BackColor = Color.White, Padding = new Padding(16, 8, 8, 8) };
             var checks = FeatureChecks(list, profile);
@@ -108,7 +110,7 @@ namespace Lean81
         }
         void RecommendationsPage()
         {
-            Heading("Choose the next useful step.", "Recommendations explain observations and your answers. They never apply changes automatically.");
+            Heading("Next steps", "Recommendations explain observations and your answers. They never apply changes automatically.");
             var body = new Panel(); Body(body); var grid = Grid(); grid.ReadOnly = true;
             grid.Columns.Add("Title", "Next step"); grid.Columns.Add("Reason", "Why it may help"); grid.Columns[0].FillWeight = 38; grid.Columns[1].FillWeight = 62;
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
@@ -120,7 +122,7 @@ namespace Lean81
         }
         void Apps()
         {
-            Heading("Review unused desktop apps.", "Filter by name or publisher, then use the normal Windows uninstaller for software you recognize.");
+            Heading("Installed apps", "Filter by name or publisher, then use the normal Windows uninstaller for software you recognize.");
             var body = new Panel(); Body(body); var toolbar = new FlowLayoutPanel();
             var search = new TextBox { Width = 250, Margin = new Padding(0, 5, 12, 0) }; toolbar.Controls.Add(search);
             toolbar.Controls.Add(ActionButton("Programs and Features", (s, e) => OpenTool("apps"), true));
@@ -131,7 +133,7 @@ namespace Lean81
         }
         void DevicePage()
         {
-            Heading("Know the limits of this laptop.", "An on-demand hardware, memory, power and fixed-drive capacity snapshot. No files are removed.");
+            Heading("Device & storage", "An on-demand hardware, memory, power and fixed-drive capacity snapshot. No files are removed.");
             var body = new Panel(); Body(body);
             var facts = LabelAt(device == null ? "Scan this laptop to load device information." : device.Cpu + "\n" + device.Windows + " · " + device.Architecture + " · " + device.LogicalCpus + " logical processors\nPhysical memory: " + DeviceSnapshot.Size(device.TotalMemory) + " · available: " + DeviceSnapshot.Size(device.AvailableMemory) + "\nPower: " + device.Power + (device.BatteryPercent.HasValue ? " · battery " + device.BatteryPercent + "%" : "") + "\nUptime since Windows boot: " + TimeSpan.FromMilliseconds(device.UptimeMilliseconds).ToString(@"d\d\ hh\h\ mm\m", CultureInfo.InvariantCulture), 10.5f);
             facts.BackColor = Color.White; facts.Padding = new Padding(12, 9, 4, 0);
@@ -148,19 +150,19 @@ namespace Lean81
         }
         void CapturePage()
         {
-            Heading("Find what is holding you up.", "Two-second CPU, RAM and disk samples. Capture during a slowdown, then inspect the resource details.");
-            var tabs = new TabControl(); Body(tabs); var live = new TabPage("Capture") { Padding = new Padding(8) }; var saved = new TabPage("Saved results & baseline") { Padding = new Padding(8) }; var resources = new TabPage("Memory, disk & processes") { Padding = new Padding(8) }; tabs.TabPages.Add(live); tabs.TabPages.Add(saved); tabs.TabPages.Add(resources);
+            Heading("Resource capture", "Two-second CPU, RAM and disk samples. Capture during a slowdown, then inspect the resource details.");
+            var tabs = new DesignTabs(); Body(tabs); var live = new TabPage("Capture") { Padding = new Padding(8) }; var saved = new TabPage("Saved results & baseline") { Padding = new Padding(8) }; var resources = new TabPage("Memory, disk & processes") { Padding = new Padding(8) }; tabs.TabPages.Add(live); tabs.TabPages.Add(saved); tabs.TabPages.Add(resources);
             var body = new Panel { Dock = DockStyle.Fill }; live.Controls.Add(body);
             var toolbar = new FlowLayoutPanel(); toolbar.Controls.Add(new Label { Text = "Workload", AutoSize = true, Padding = new Padding(0, 7, 8, 0) });
             var workload = new TextBox { Text = workspace.Workload, Width = 215, MaxLength = 80, Margin = new Padding(0, 3, 12, 0) }; toolbar.Controls.Add(workload); workload.TextChanged += (s, e) => workspace.Workload = Product.Clean(workload.Text, 80);
-            var duration = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110, Margin = new Padding(0, 3, 8, 0) }; duration.Items.AddRange(new object[] { "30 seconds", "60 seconds", "120 seconds" }); duration.SelectedIndex = 0; toolbar.Controls.Add(duration);
+            var duration = new DesignComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110, Margin = new Padding(0, 3, 8, 0) }; duration.Items.AddRange(new object[] { "30 seconds", "60 seconds", "120 seconds" }); duration.SelectedIndex = 0; toolbar.Controls.Add(duration);
             captureStats = LabelAt("Ready. Use the laptop normally during capture.", 10.5f);
             chart = new CpuChart();
             var actions = new FlowLayoutPanel { WrapContents = true };
             var start = ActionButton("Start capture", async (s, e) => await StartCapture(duration.SelectedIndex == 0 ? 30 : duration.SelectedIndex == 1 ? 60 : 120), true); actions.Controls.Add(start);
             var stop = ActionButton("Stop", (s, e) => { if (captureCancel != null) captureCancel.Cancel(); }); stop.Enabled = false; actions.Controls.Add(stop);
             var export = ActionButton("Export trace…", (s, e) => ExportCapture()); export.Enabled = capture != null; actions.Controls.Add(export);
-            var peaks = LabelAt("Teal: CPU   ·   Blue: physical RAM in use   ·   Amber: aggregate disk busy\n" + (capture == null ? "Up to 20 CPU, memory and I/O leaders per sample. Monitoring stops with capture." : "Open Memory, disk & processes for sortable leaders and findings."), 9.5f);
+            var peaks = LabelAt("Lime: CPU   ·   Blue: physical RAM in use   ·   Amber: aggregate disk busy\n" + (capture == null ? "Up to 20 CPU, memory and I/O leaders per sample. Monitoring stops with capture." : "Open Memory, disk & processes for sortable leaders and findings."), 9.5f);
             Rows(body, new Control[] { toolbar, captureStats, chart, peaks, actions }, 40, 42, -1, 52, 46);
             if (capture != null) { chart.Values.AddRange(capture.Samples.Select(s => ResourceAnalysis.Number(s.metrics, "cpu_pct", 100))); chart.MemoryValues.AddRange(capture.Samples.Select(s => { var available = ResourceAnalysis.Number(s.metrics, "memory_available_pct", 100); return available.HasValue ? (double?)(100 - available.Value) : null; })); chart.DiskValues.AddRange(capture.Samples.Select(s => ResourceAnalysis.Number(s.metrics, "disk_busy_pct", 100))); ShowCaptureStats(); }
             captureControls = running => { start.Enabled = !running; stop.Enabled = running; workload.Enabled = !running; duration.Enabled = !running; export.Enabled = !running && capture != null; tabs.TabPages[1].Enabled = tabs.TabPages[2].Enabled = !running; };
@@ -194,7 +196,7 @@ namespace Lean81
             if (report == null) { status.Text = "Scan this laptop before exporting a report."; return; }
             var current = selectedResult ?? latestSummary ?? workspace.History.FirstOrDefault();
             var baseline = workspace.History.FirstOrDefault(r => r.Id == workspace.BaselineId);
-            using (var options = new Form { Text = "Export laptop report", ClientSize = new Size(610, 340), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
+            using (var options = new StyledDialog { Text = "Export laptop report", ClientSize = new Size(610, 340), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
             {
                 var text = LabelAt("Save a self-contained HTML report with next steps, device capacity and CPU evidence. Open or print it in a browser. Commands, paths, receipts, workload labels and machine identifiers are excluded.", 10);
                 var comparison = new CheckBox { Text = baseline == null ? "Baseline comparison (choose a baseline in Saved results first)" : "Include baseline comparison and condition checks", AutoSize = true, Checked = baseline != null && current != null, Enabled = baseline != null && current != null };
@@ -212,8 +214,8 @@ namespace Lean81
         }
         void ToolsPage()
         {
-            Heading("Help when you need it.", "Open a specific Windows tool or read how Lean81's choices, captures and recovery work.");
-            var tabs = new TabControl(); Body(tabs); var tools = new TabPage("Windows tools") { Padding = new Padding(8) }; var help = new TabPage("How it works") { Padding = new Padding(8) }; tabs.TabPages.Add(tools); tabs.TabPages.Add(help);
+            Heading("Tools & help", "Open a specific Windows tool or read how Lean81's choices, captures and recovery work.");
+            var tabs = new DesignTabs(); Body(tabs); var tools = new TabPage("Windows tools") { Padding = new Padding(8) }; var help = new TabPage("How it works") { Padding = new Padding(8) }; tabs.TabPages.Add(tools); tabs.TabPages.Add(help);
             var body = new Panel { Dock = DockStyle.Fill }; tools.Controls.Add(body); var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Name", "Tool"); grid.Columns.Add("Purpose", "Purpose"); grid.Columns[0].FillWeight = 29; grid.Columns[1].FillWeight = 71; grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
             foreach (var tool in WindowsTools.All) { var row = grid.Rows[grid.Rows.Add(tool.Title, tool.Purpose)]; row.Tag = tool; }
             var actions = new FlowLayoutPanel(); actions.Controls.Add(ActionButton("Open selected tool", (s, e) => { if (grid.SelectedRows.Count > 0) OpenTool(((ToolSpec)grid.SelectedRows[0].Tag).Id); }, true)); actions.Controls.Add(ActionButton("Startup folder", (s, e) => OpenStartup()));
@@ -279,6 +281,6 @@ namespace Lean81
             Profiles.Copy(Product.Json().Deserialize<UsageProfile>(before), profile); choicesStale = false; report = backend.Scan(profile); ShowPage(4);
             foreach (var tool in WindowsTools.All) OpenTool(tool.Id);
         }
-        const string HelpText = "START HERE\r\nUse Quick tune, Quick setup or Usage profile. Quick tune builds a review from unused-feature answers; desktop effects require a separate opt-in. Keep features checked if you use them or aren't sure. Presets only fill answers; they never apply changes. Select specific entries and read the review screen.\r\n\r\nWHY CAN'T I SELECT THIS?\r\nA feature can be kept by your answers, needed by a dependent service, already disabled, or protected by policy. The Why / next step column explains it. Core, networking and security services are outside the allowlist.\r\n\r\nADMINISTRATOR MODE\r\nScans, device snapshots, captures and reports work without admin. A change review can reopen Lean81 with administrator permission using the same Windows account. Usage answers are remembered; selections are intentionally made again against a fresh scan. No change plan is imported into the privileged process.\r\n\r\nCPU BASELINES\r\nGive your activity a short workload label. Run a 30-, 60- or 120-second capture, then set its saved result as the baseline. Repeat the same activity, duration and power source before comparing another result. Unknown/mixed power, different hardware, missing samples and partial captures block comparison. Matching labels do not prove matching activity.\r\n\r\nCAPTURE LIMITS\r\nSamples are two seconds apart. Up to 20 accessible CPU, memory and read/write I/O leaders are recorded per sample. CPU is normalized across logical processors. Process I/O includes network and device operations, not just disk; unavailable counters remain unknown. Memory, disk & processes shows commit usage, page-ins and kernel pools. Short spikes and inaccessible processes may be missed. There is no wake-delay probe. Capturing has an observer cost, recorded in the trace. No continuous background monitor runs.\r\n\r\nLOCAL DATA & PRIVACY\r\nUp to 12 aggregate CPU results, workload labels, baseline and usage answers are stored under LocalAppData\\Lean81. History has no process names, PIDs, startup commands or paths. Demo mode uses memory only. Exported traces omit process names by default. HTML reports omit software names unless selected. Review any export before sharing. No telemetry or upload is performed.\r\n\r\nRECOVERY\r\nKeep ProgramData\\Lean81: it holds administrator-private original settings. Recovery checks the entire pending receipt before restoring. Independent edits or partial states stop automatic recovery. Check the receipt, read its error and inspect the corresponding Windows tool. Do not edit receipts to force recovery. Private receipts can contain startup commands; do not share them.\r\n\r\nWHAT CHANGES DO\r\nA startup change removes one supported Run value. A task change prevents future automatic launches; it does not stop a running task. A service change disables its start type and stops that service without stopping dependents. Desktop effects write three fixed user DWORD settings only after selection; exact previous values, including absence, are saved. Sign out and back in to refresh Explorer. No process killing, automatic uninstalling or file cleanup is performed.\r\n\r\nWINDOWS 8.1\r\nLean81 targets .NET Framework 4.5.1 / Windows 8.1. Automated checks run on newer Windows; physical Windows 8.1 validation is pending. No performance improvement is promised without measurements on your laptop.";
+        const string HelpText = "START HERE\r\nOpen Deep tune. Pick a starting point, then keep each feature you use or are unsure about. KEEP means retained. UNUSED makes a feature eligible for review. A preset only fills choices; it never changes Windows. Maximum reduction assumes most optional features are unused.\r\n\r\nREVIEW AND APPLY\r\nThe live summary uses the last scan. Review tune scans again and lists the actual installed changes. Read their tradeoffs and choose which running companions to close. Settings apply first. A settings failure skips app closure and preserves recovery records. Some desktop effects need sign-out.\r\n\r\nCLOSING APPS\r\nNormal close is the default. Force close is a separate choice and can interrupt sync, downloads, calls or unsaved work. Only recognized same-user background companions are offered. Browsers, core Windows components and foreground app families stay protected. Reopen closed apps manually.\r\n\r\nRESULTS\r\nOptional short observations show CPU, available RAM, disk activity and commit before and after. Remaining load lists sampled processes. Missing readings remain unknown; these short observations are not a benchmark or proof of a speed increase. Dashboard values are labelled snapshots, not a continuous monitor.\r\n\r\nRESTORE SETTINGS\r\nUse Tune result > Restore this tune, or open Recovery after restarting Lean81. Recovery refuses independent edits instead of overwriting them. Keep the private recovery folder until you no longer need its original settings. Closed apps and their unsaved work are not restored by settings recovery.\r\n\r\nADMINISTRATOR ACCESS\r\nScans, observations and eligible companion closure work without administrator rights. Setting changes require elevation under the same Windows account and a fresh review. Saved feature choices are remembered; action plans are not imported.\r\n\r\nPRIVACY AND LIMITS\r\nLean81 keeps data locally and has no telemetry, resident service or update agent. Exports happen only when selected. Private recovery records can contain startup commands and shortcut data; do not share them. Security, networking and core OS services are protected. Microsoft/system scheduled tasks are inspection-only. There is no registry/RAM cleaner or pagefile/kernel tweak.\r\n\r\nWINDOWS 8.1\r\nThe app targets Windows 8.1 and .NET Framework 4.5.1. Automated checks use newer Windows; physical Windows 8.1 testing remains pending. Speed gains depend on the workload and hardware.";
     }
 }

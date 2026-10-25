@@ -23,41 +23,6 @@ namespace Lean81
     public sealed partial class MainForm
     {
         string lastTune;
-        void QuickTunePage()
-        {
-            Heading("Deep tune this laptop.", "Choose what stays. Lean81 stops unused service groups and prevents recognized background software from returning.");
-            var body = new Panel(); Body(body);
-            var list = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, BackColor = Color.White, Padding = new Padding(14, 8, 8, 8) };
-            var checks = FeatureChecks(list, profile); var toolbar = new FlowLayoutPanel(); var presets = Presets(checks); toolbar.Controls.Add(presets);
-            toolbar.Controls.Add(ActionButton("Maximum reduction", (s, e) => presets.SelectedIndex = 5, true));
-            var choices = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false };
-            var effects = new CheckBox { Text = "Reduce desktop effects", AutoSize = true, Checked = true };
-            var startup = new CheckBox { Text = "Include recognized startup apps, shortcuts and third-party tasks for unused categories", AutoSize = true, Checked = true };
-            var power = new CheckBox { Text = "Select High performance plan (mains required; stays active until changed)", AutoSize = true };
-            var closeApps = new CheckBox { Text = "Also review closing running companions in unused categories", AutoSize = true, Checked = true };
-            choices.Controls.Add(effects); choices.Controls.Add(startup); choices.Controls.Add(power); choices.Controls.Add(closeApps);
-            var note = new TextBox { Text = lastTune ?? "Maximum reduction assumes no printing, Bluetooth, indexing, preloading, TV, sync, chat or local game launchers. Check anything you need. Windows security, networking and core services stay protected. App updates you disable will need manual attention. No recording or export is required.", Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BackColor = Color.White };
-            var actions = new FlowLayoutPanel { WrapContents = true };
-            actions.Controls.Add(ActionButton("Review deep tune…", async (s, e) =>
-            {
-                if (busy) return;
-                bool includeEffects = effects.Checked, includeStartup = startup.Checked, includePower = power.Checked, includeApps = closeApps.Checked;
-                Profiles.Copy(ReadChecks(checks), profile); SaveWorkspace(); bool scanned = await Scan();
-                if (!scanned) return;
-                try
-                {
-                    var plan = DeepTunePlan.Build(report, profile, includeEffects, includePower, includeStartup);
-                    var request = new TuneSessionRequest { Settings = plan, Apps = includeApps ? TuneSessionEngine.SuggestApps(runningApps, profile) : new System.Collections.Generic.List<RunningApp>() };
-                    if (plan.Items.Count + request.Apps.Count == 0) { status.Text = "No matching settings or recognized background companions. Review your kept features or Startup apps."; return; }
-                    if (!ReviewSession(request)) return;
-                    await ApplySession(request);
-                }
-                catch (Exception ex) { SetBusy(false, "Tune stopped. Earlier changes, if any, are saved in Recovery."); Error(ex); }
-            }, true));
-            actions.Controls.Add(ActionButton("Close background apps", (s, e) => ShowPage(13)));
-            actions.Controls.Add(ActionButton("Last tune result", (s, e) => ShowPage(14)));
-            Rows(body, new Control[] { toolbar, list, choices, note, actions }, 42, -1, 104, 70, 48);
-        }
         void ResourceDetails(TabPage pageTab)
         {
             var body = new Panel { Dock = DockStyle.Fill }; pageTab.Controls.Add(body);
@@ -69,7 +34,7 @@ namespace Lean81
                 + "\r\nLatest kernel nonpaged / paged: " + ResourceAnalysis.Format(last == null ? null : ResourceAnalysis.Number(last.metrics, "kernel_nonpaged_bytes"), " MiB", 1048576) + " / " + ResourceAnalysis.Format(last == null ? null : ResourceAnalysis.Number(last.metrics, "kernel_paged_bytes"), " MiB", 1048576)
                 + "   ·   cache: " + ResourceAnalysis.Format(last == null ? null : ResourceAnalysis.Number(last.metrics, "system_cache_bytes"), " MiB", 1048576);
             var toolbar = new FlowLayoutPanel(); toolbar.Controls.Add(new Label { Text = "Sort processes by", AutoSize = true, Padding = new Padding(0, 7, 10, 0) });
-            var sort = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170, Margin = new Padding(0, 4, 12, 0) }; sort.Items.AddRange(new object[] { "Peak CPU", "Working-set RAM", "Private memory", "Read/write I/O" }); sort.SelectedIndex = 0; toolbar.Controls.Add(sort);
+            var sort = new DesignComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170, Margin = new Padding(0, 4, 12, 0) }; sort.Items.AddRange(new object[] { "Peak CPU", "Working-set RAM", "Private memory", "Read/write I/O" }); sort.SelectedIndex = 0; toolbar.Controls.Add(sort);
             toolbar.Controls.Add(ActionButton("Resource Monitor", (s, e) => OpenTool("resources")));
             var grid = Grid(); grid.ReadOnly = true;
             foreach (string name in new[] { "Process / PID", "Peak CPU", "RAM MiB", "Private MiB", "I/O MiB/s", "Samples" }) grid.Columns.Add(name, name);
@@ -98,7 +63,7 @@ namespace Lean81
             selected.Clear(); ShowPage(11);
             var before = Product.Json().Serialize(profile); var presets = Descendants(content).OfType<ComboBox>().Single();
             presets.SelectedIndex = 4;
-            var answers = ReadChecks(Descendants(content).OfType<CheckBox>().Take(FeatureLabels.Length).ToArray());
+            var answers = ReadChecks(OrderedFeatureChecks(content));
             if (Product.Json().Serialize(answers) != Product.Json().Serialize(Profiles.Preset(3)) || before != Product.Json().Serialize(profile) || selected.Count != 0)
                 throw new InvalidOperationException("A quick-tune preset changed saved answers or applied changes without review.");
             ShowPage(12); var grid = Descendants(content).OfType<DataGridView>().Single();

@@ -1,20 +1,20 @@
 # Lean81
 
-**Actively cut background load on an older laptop.**
+**Control what runs in the background.**
 
 Lean81 stops reviewed unused services, prevents recognized background software from returning at sign-in, and closes selected companion apps inside the same small Windows app. It targets Windows 8.1 / .NET Framework 4.5.1 and needs no Python, bundled browser, installer or permanent service.
 
 [Download Lean81 1.1](https://github.com/HamWebDevs/Lean81/releases/tag/v1.1.0) · [Quick start](docs/QUICKSTART.txt) · [Deep-tune guide](docs/FEATURES.md) · [Recovery](docs/RECOVERY.md)
 
-**In development: 1.2.0-rc.1.** Deep tune now combines configuration changes and selected running-companion closure in one review. Its result page shows each action, direct group recovery and optional short CPU/RAM/disk observations inside Lean81. The stable download above remains 1.1. See the [candidate notes](docs/RELEASE-1.2.0-rc.1.md) and [release validation plan](docs/RELEASE-READINESS.md). [View the candidate result screen](docs/screenshots/tune-result.png) (synthetic data).
+**Latest preview: [1.2.0-rc.2](https://github.com/HamWebDevs/Lean81/releases/tag/v1.2.0-rc.2).** A redesigned charcoal-and-lime interface with grouped feature switches, preset cards, a snapshot dashboard and one reviewed tuning workflow. [Candidate notes](docs/RELEASE-1.2.0-rc.2.md) · [Release validation plan](docs/RELEASE-READINESS.md). Screenshots use synthetic data.
 
 ![Deep tune with synthetic data](docs/screenshots/deep-tune.png)
 
 ## Start here
 
-1. Extract **Lean81-1.1.0-portable.zip** and open **Lean81.exe**.
-2. In **Deep tune**, click **Maximum reduction**. Check anything you need to keep: this preset assumes no printing, Bluetooth, indexing, Superfetch, TV, sync, chat or local game launchers. Compatibility assistance and Windows themes stay kept unless you opt out.
-3. Choose **Review deep tune**, read **Settings** and **Close apps now**, and uncheck any companion you need. Normal close is the default; force close is an explicit choice. If administrator permission is needed for settings, use the same Windows account and build the review again after elevation.
+1. Extract the preview **Lean81-1.2.0-rc.2-portable.zip** and open **Lean81.exe**.
+2. From **Dashboard**, open **Deep tune**. Choose **Keep all**, **Browser & cloud games** or **Maximum reduction**, then keep anything you use. **KEEP** retains a feature; **UNUSED** makes it eligible for review. Maximum reduction assumes: this preset assumes no printing, Bluetooth, indexing, Superfetch, TV, sync, chat or local game launchers. Compatibility assistance and Windows themes stay kept unless you opt out.
+3. Choose **Review tune**, read **Settings** and **Close apps now**, and uncheck any companion you need. Normal close is the default; force close is an explicit choice. If administrator permission is needed for settings, use the same Windows account and build the review again after elevation.
 4. Apply the review. Services stop now and stay disabled; startup changes prevent future launches; selected companions receive close requests. Optional short resource checks run inside Lean81, with each result in **Tune result**. Keep your workload similar during both observations.
 5. Use **Tune result → Restore this tune** or **Recovery → Restore tune group** to undo saved settings. Closed apps and their unsaved state are not restored automatically; reopen apps yourself. **Running apps** remains available for separate closure.
 

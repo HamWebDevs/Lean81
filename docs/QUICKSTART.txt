@@ -1,12 +1,14 @@
-Lean81 1.2.0-rc.1 - HamWebDevs - release candidate
+Lean81 1.2.0-rc.2 - HamWebDevs - release candidate
 
 ACTIVELY REDUCE BACKGROUND LOAD
 1. Extract the portable ZIP and open Lean81.exe.
-2. In Deep tune, click Maximum reduction.
-3. Check features you need to keep. The preset assumes no printing, Bluetooth,
+2. From Dashboard, open Deep tune. Choose a preset card.
+3. KEEP retains a feature; UNUSED makes it eligible for review. The Windows,
+   Devices, Sharing and Apps tabs group these choices. Maximum reduction
+   assumes no printing, Bluetooth,
    indexing, Superfetch, TV, sync, chat or local game launchers. Compatibility
    assistance and Windows themes stay enabled unless you choose otherwise.
-4. Choose Review deep tune. Read Settings and Close apps now. Uncheck apps
+4. Choose Review tune. Read Settings and Close apps now. Uncheck apps
    you need, or Keep all apps. Normal close is the default; force close is
    an explicit option for tray/helpers and may lose app work. Apply the review.
    If administrator permission is needed, use the same account and build the

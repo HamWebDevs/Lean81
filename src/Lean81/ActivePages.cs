@@ -21,7 +21,7 @@ namespace Lean81
         }
         void RunningAppsPage()
         {
-            Heading("Free resources now.", "Close selected launcher, sync, chat or music companions. Browsers, Windows, drivers and foreground app families are kept.");
+            Heading("Running apps", "Close selected launcher, sync, chat or music companions. Browsers, Windows, drivers and foreground app families are kept.");
             var body = new Panel(); Body(body);
             var grid = Grid(); grid.Columns.Add(new DataGridViewCheckBoxColumn { Width = 36, AutoSizeMode = DataGridViewAutoSizeColumnMode.None });
             grid.Columns.Add("Name", "Recognized app / PID"); grid.Columns.Add("Memory", "RAM MiB"); grid.Columns.Add("State", "Current state");
@@ -68,7 +68,7 @@ namespace Lean81
         {
             if (!demo) throw new InvalidOperationException("Synthetic mode required.");
             ShowPage(11); var presets = Descendants(content).OfType<ComboBox>().Single(); presets.SelectedIndex = 5;
-            var answers = ReadChecks(Descendants(content).OfType<CheckBox>().Take(FeatureLabels.Length).ToArray());
+            var answers = ReadChecks(OrderedFeatureChecks(content));
             if (Product.Json().Serialize(answers) != Product.Json().Serialize(Profiles.Preset(4))) throw new InvalidOperationException("Maximum-reduction answers are not connected to the deep-tune page.");
             var initial = report.Items.ToDictionary(i => i.Id, i => backend.Read(i.Before).Fingerprint());
             var engine = new DeepTuneEngine(backend, journals);

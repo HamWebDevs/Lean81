@@ -15,10 +15,10 @@ namespace Lean81
         TuneSessionResult lastSession;
         bool ReviewSession(TuneSessionRequest request, string screenshot = null)
         {
-            using (var dialog = new Form { Text = "Review deep tune", ClientSize = new Size(800, 570), MinimumSize = new Size(720, 530), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), MinimizeBox = false, MaximizeBox = false })
+            using (var dialog = new StyledDialog { Text = "Review deep tune", ClientSize = new Size(800, 570), MinimumSize = new Size(720, 530), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), MinimizeBox = false, MaximizeBox = false })
             {
                 var explanation = new Label { Text = "Review the settings and choose which running companions to close. Services stop now and stay disabled. Startup changes affect future launches. Closed apps must be reopened manually.", ForeColor = Ink };
-                var tabs = new TabControl(); var settingsTab = new TabPage("Settings (" + request.Settings.Items.Count + ")"); var appsTab = new TabPage("Close apps now"); tabs.TabPages.Add(settingsTab); tabs.TabPages.Add(appsTab);
+                var tabs = new DesignTabs(); var settingsTab = new TabPage("Settings (" + request.Settings.Items.Count + ")"); var appsTab = new TabPage("Close apps now"); tabs.TabPages.Add(settingsTab); tabs.TabPages.Add(appsTab);
                 settingsTab.Controls.Add(new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical,
                     Text = request.Settings.Items.Count == 0 ? "No settings to change in this review. You can still close reviewed background apps." : String.Join(Environment.NewLine + Environment.NewLine, request.Settings.Items.Select(i => i.Name + " · " + i.Scope + " / " + i.Kind + "\r\n" + i.Before.Target + "\r\n" + i.Tradeoff).Concat(request.Settings.Kept.Select(k => "KEPT: " + k))) });
                 var appsBody = new Panel { Dock = DockStyle.Fill }; appsTab.Controls.Add(appsBody);
@@ -99,20 +99,20 @@ namespace Lean81
         }
         void SessionResultPage()
         {
-            Heading("See what changed.", "Settings and app results, with short CPU / RAM / disk observations. No export or other app is required.");
+            Heading("Tune result", "Settings and app results, with short CPU / RAM / disk observations. No export or other app is required.");
             var body = new Panel(); Body(body);
             var summary = new Label { Text = lastSession == null ? "Apply a reviewed deep tune to see its result here." : lastSession.Summary() + (lastSession.Restored ? " · settings restored" : ""), ForeColor = Ink };
             var grid = Grid(); grid.ReadOnly = true;
             foreach (string name in new[] { "Resource", "Before", "After", "Observed difference" }) grid.Columns.Add(name, name);
             grid.Columns[0].FillWeight = 24; grid.Columns[1].FillWeight = grid.Columns[2].FillWeight = 17; grid.Columns[3].FillWeight = 42;
             if (lastSession != null) foreach (var row in TuneReadings.Compare(lastSession.Before, lastSession.After)) grid.Rows.Add(row.Name, row.Before, row.After, row.Difference);
-            var tabs = new TabControl(); var observations = new TabPage("Observations"); var remaining = new TabPage("Remaining load"); tabs.TabPages.Add(observations); tabs.TabPages.Add(remaining); observations.Controls.Add(grid);
+            var tabs = new DesignTabs(); var observations = new TabPage("Observations"); var remaining = new TabPage("Remaining load"); tabs.TabPages.Add(observations); tabs.TabPages.Add(remaining); observations.Controls.Add(grid);
             var remainingBody = new Panel { Dock = DockStyle.Fill }; remaining.Controls.Add(remainingBody);
             var processGrid = Grid(); processGrid.ReadOnly = true;
             foreach (string name in new[] { "Process / PID", "Peak CPU", "Peak RAM MiB", "Peak I/O MiB/s" }) processGrid.Columns.Add(name, name);
             processGrid.Columns[0].FillWeight = 42; processGrid.Columns[1].FillWeight = 18; processGrid.Columns[2].FillWeight = processGrid.Columns[3].FillWeight = 20;
             var tools = new FlowLayoutPanel(); tools.Controls.Add(new Label { Text = "After-check leaders · sort", AutoSize = true, Padding = new Padding(0, 7, 8, 0) });
-            var sort = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 145, Margin = new Padding(0, 4, 8, 0) }; sort.Items.AddRange(new object[] { "CPU", "Working-set RAM", "Read/write I/O" }); sort.SelectedIndex = 0; tools.Controls.Add(sort);
+            var sort = new DesignComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 145, Margin = new Padding(0, 4, 8, 0) }; sort.Items.AddRange(new object[] { "CPU", "Working-set RAM", "Read/write I/O" }); sort.SelectedIndex = 0; tools.Controls.Add(sort);
             Action populate = () =>
             {
                 processGrid.Rows.Clear();
