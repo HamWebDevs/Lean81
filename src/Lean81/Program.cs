@@ -49,7 +49,7 @@ namespace Lean81
                                 else if (page == count * 2) { timer.Stop(); form.SmokeReviewScreenshot(Path.Combine(output, "review-dialog.png")); form.SmokeSetupScreenshot(Path.Combine(output, "quick-setup.png")); form.SmokeComparisonScreenshot(Path.Combine(output, "comparison.png")); form.SmokeResourcesScreenshot(Path.Combine(output, "resources.png")); form.SmokeReport(output); form.SmokeInteractions(); form.SmokeDesignInteractions(); form.SmokeTuningInteractions(); form.SmokeActiveActions(); form.SmokeSessionScreenshots(output); page++; timer.Start(); }
                                 else { timer.Stop(); File.WriteAllText(Path.Combine(output, "gui-smoke.txt"), "PASS: " + count + " pages at two sizes, cancelled review/setup/report/combined-tune dialogs, saved-result comparison, generated report variants, checkbox/filter/protection interactions, native accessible feature-switch action, preset cards/custom choices, grouped navigation, quick-tune preset isolation, desktop selection, resource sorting, missing-data chart rendering, dependency tune/group restore, combined tune/app closure/result/recovery and demo tool launches."); form.Close(); }
                             }
-                            catch (Exception ex) { smokeError = ex; timer.Stop(); form.Close(); }
+                            catch (Exception ex) { smokeError = ex; timer.Stop(); try { form.SaveScreenshot(Path.Combine(output, "layout-failure.png")); } catch { } form.Close(); }
                         };
                         form.Shown += (s, e) => timer.Start();
                     }

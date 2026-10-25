@@ -45,6 +45,7 @@ namespace Lean81
             var body = new Panel(); Body(body); CheckBox[] checks; var featureTabs = GroupedFeatures(profile, out checks);
             var presets = Presets(checks); presets.Width = 300;
             var presetRow = new TableLayoutPanel { ColumnCount = 3, RowCount = 1, Margin = Padding.Empty };
+            presetRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             var tiles = new PresetControl[3]; int[] presetIndices = { 1, 4, 5 }; string[] tileTitles = { "Keep all", "Browser & cloud games", "Maximum reduction" }; string[] captions = { "Start with every feature kept", "A lighter everyday setup", "Most optional features unused" };
             for (int i = 0; i < 3; i++)
             {
@@ -54,6 +55,7 @@ namespace Lean81
             }
             var presetOptions = new FlowLayoutPanel(); presetOptions.Controls.Add(new Label { Text = "Starting point", AutoSize = true, ForeColor = Muted, Font = Design.Small, Padding = new Padding(0, 8, 12, 0) }); presetOptions.Controls.Add(presets);
             var middle = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Margin = Padding.Empty };
+            middle.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             middle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); middle.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 230));
             featureTabs.Margin = new Padding(0, 0, 14, 0); featureTabs.Dock = DockStyle.Fill; middle.Controls.Add(featureTabs, 0, 0);
             var summary = new SurfacePanel { Dock = DockStyle.Fill, Margin = Padding.Empty, Padding = new Padding(12, 10, 12, 8) }; middle.Controls.Add(summary, 1, 0);
@@ -72,6 +74,7 @@ namespace Lean81
             var safe = LabelAt("Security, networking and core Windows services stay protected.", 8.5f); safe.AutoEllipsis = true;
             Rows(summary, new Control[] { title, counts, options, safe }, 24, 64, 112, -1);
             var actionRow = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Padding = new Padding(0, 10, 0, 0), Margin = Padding.Empty };
+            actionRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
             var note = LabelAt(lastTune ?? "KEEP = used or uncertain. UNUSED = eligible for this review.", 8.5f); note.AutoEllipsis = true; note.Dock = DockStyle.Fill; note.Padding = new Padding(0, 8, 14, 0); actionRow.Controls.Add(note, 0, 0);
             var apply = ActionButton("Review tune  →", async (s, e) =>

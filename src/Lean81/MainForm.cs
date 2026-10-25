@@ -58,7 +58,7 @@ namespace Lean81
         readonly Button review = new ActionControl();
         readonly Label localBadge = new Label();
         TableLayoutPanel pageLayout;
-        ScanReport report; int page = 11; bool busy; CancellationTokenSource captureCancel;
+        ScanReport report; int page = 0; bool busy; CancellationTokenSource captureCancel;
         CaptureResult capture; CpuChart chart; Label captureStats;
         static readonly string[] Pages = { "Dashboard", "Feature choices", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "Resource capture", "Recovery", "Device & storage", "Next steps", "Tools & help", "Deep tune", "Desktop effects", "Running apps", "Tune result" };
         public MainForm(IBackend backend, IJournalStore journals, bool demo)
@@ -72,6 +72,7 @@ namespace Lean81
             AutoScaleMode = AutoScaleMode.Dpi;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
             var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = Design.Sidebar, Padding = new Padding(18, 8, 18, 8), Margin = Padding.Empty };
+            footer.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 185));
             review.Text = "Review changes (0)"; review.Dock = DockStyle.Fill; review.Margin = Padding.Empty; StyleButton(review, true); review.Click += async (s, e) => await ReviewChanges(); var reviewHost = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty }; footer.Controls.Add(reviewHost, 1, 0); reviewHost.Controls.Add(review);
             localBadge.Text = demo ? "DEMO / NO SYSTEM WRITES" : "LOCAL / NO TELEMETRY"; localBadge.ForeColor = Design.Muted; localBadge.Font = Design.Small; localBadge.TextAlign = ContentAlignment.MiddleRight; localBadge.Dock = DockStyle.Fill; reviewHost.Controls.Add(localBadge);
