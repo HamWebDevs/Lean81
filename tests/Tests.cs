@@ -143,7 +143,7 @@ static partial class Tests
             Test("native journal ACL and validated listing", () => Assert(journals.List().Count >= 2));
             Test("native journal traversal rejected", () => Throws(() => journals.Load("..\\x")));
             Test("native recovery listing isolates other user scopes", () => Assert(new JournalStore(Product.Hash("different user scope")).List().Count == 0));
-            Test("native CPU capture has real bounded samples", () => { var r = CpuCapture.Run(4, CancellationToken.None, null); Assert(!r.Synthetic && r.Error == null && r.Samples.Count >= 2 && r.LogicalCpus > 0); Assert(r.Samples.All(s => Convert.ToDouble(s.metrics["cpu_pct"]) >= 0 && Convert.ToDouble(s.metrics["cpu_pct"]) <= 100 && s.processes.Count <= 20)); Assert(r.Samples.All(s => ResourceAnalysis.Number(s.metrics, "commit_pct", 100).HasValue && ResourceAnalysis.Number(s.metrics, "kernel_nonpaged_bytes").HasValue && s.metrics.ContainsKey("disk_busy_pct"))); Assert(r.Samples.SelectMany(s => s.processes).Any(p => p.private_bytes.HasValue && p.io_bytes_per_sec.HasValue)); });
+            Test("native CPU capture has real bounded samples", () => { var r = CpuCapture.Run(4, CancellationToken.None, null); Assert(!r.Synthetic && r.Error == null && r.Samples.Count >= 2 && r.LogicalCpus > 0); Assert(r.Samples.All(s => Convert.ToDouble(s.metrics["cpu_pct"]) >= 0 && Convert.ToDouble(s.metrics["cpu_pct"]) <= 100 && s.processes.Count <= 20)); Assert(r.Samples.All(s => ResourceAnalysis.Number(s.metrics, "commit_pct", 100).HasValue && ResourceAnalysis.Number(s.metrics, "kernel_nonpaged_bytes").HasValue && s.metrics.ContainsKey("disk_busy_pct"))); Assert(r.Samples.SelectMany(s => s.processes).Any(p => p.private_bytes.HasValue && p.io_bytes_per_sec.HasValue)); Assert(r.Samples.Any(s => ResourceAnalysis.Number(s.metrics, "disk_busy_pct", 100).HasValue), "Expected installed PhysicalDisk counters on the Windows CI image"); });
             Test("native desktop settings are inspection only during fixtures", () => { foreach (var option in DesktopSettings.Options) { var s = b.Read(new ItemState { Kind = "setting", Scope = "user", Target = option.Id }); Assert(s.Kind == "setting" && s.Scope == "user" && s.Target == option.Id); } });
             Test("native device snapshot reads memory, uptime and fixed-drive capacity", () => { var d = DeviceSnapshot.Read(); Assert(d.TotalMemory > 0 && d.AvailableMemory <= d.TotalMemory && d.LogicalCpus > 0 && d.UptimeMilliseconds > 0 && d.Disks.Count > 0 && d.Disks.All(x => x.FreeBytes <= x.TotalBytes)); });
             Test("native optional-service inventory is protected by default", () => { var report = b.Scan(new UsageProfile()); Assert(report.Items.Any(x => x.Kind == "service"), "expected at least one installed optional service on the Windows runner"); Assert(report.Items.Where(x => x.Kind == "service").All(x => !x.CanChange && x.Before.Definition.Length == 64)); });
@@ -160,7 +160,8 @@ static partial class Tests
     }
     [STAThread] static int Main(string[] args)
     {
-        MainCore(); FeatureTests(); ResourceTests(); if (args.Contains("--native")) Test("Windows native fixture suite", Native);
+        if (args.Contains("--resource-probe")) Test("x86 native resource layout and bounded capture", NativeResourceProbe);
+        else { MainCore(); FeatureTests(); ResourceTests(); if (args.Contains("--native")) Test("Windows native fixture suite", Native); }
         Console.WriteLine(passed + " passed, " + failed + " failed"); return failed == 0 ? 0 : 1;
     }
 }

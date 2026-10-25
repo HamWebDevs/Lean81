@@ -60,6 +60,16 @@ if ($Test -or $Native) {
     $testArgs = @(); if ($Native) { $testArgs += '--native' }
     & (Join-Path $out 'Lean81.Tests.exe') @testArgs | Tee-Object (Join-Path $out 'tests.txt')
     if ($LASTEXITCODE -ne 0) { throw 'Tests failed.' }
+    if ($Native) {
+        # Exercise pointer-sized GetPerformanceInfo and PDH/I-O layouts as x86 too.
+        # This extra probe is read-only and creates no registry/task/service fixture.
+        $x86 = @($common | Where-Object { $_ -notlike '/platform:*' }) + '/platform:x86'
+        $probe = Join-Path $out 'Lean81.ResourceProbe.x86.exe'
+        & $compiler @x86 '/target:exe' '/main:Tests' ('/out:' + $probe) @source @testSource
+        if ($LASTEXITCODE -ne 0) { throw 'x86 resource probe compilation failed.' }
+        & $probe '--resource-probe' | Tee-Object -Append (Join-Path $out 'tests.txt')
+        if ($LASTEXITCODE -ne 0) { throw 'x86 resource probe failed.' }
+    }
 }
 if ($Gui) {
     $guiDir = Join-Path $out 'gui'

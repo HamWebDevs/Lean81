@@ -57,3 +57,5 @@ API references:
 - https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getprocessiocounters
 
 Desktop Peek location reference: https://learn.microsoft.com/en-us/answers/questions/1282989/prevent-window-from-disapearing-when-hovering-anot
+
+The native CI suite additionally compiles an x86 resource probe and checks pointer-sized memory structures, process I/O and bounded capture in a 32-bit process. This runs on modern Windows and is not a Windows 8.1 hardware test.

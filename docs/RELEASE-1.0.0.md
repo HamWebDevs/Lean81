@@ -14,6 +14,6 @@ Changes still require a review, protected backup and current-state checks. Recov
 
 Process I/O includes network/device operations and is not per-process disk utilization. Disk readings are aggregate across disks. Missing counters remain unknown. Two-second sampling can miss short spikes. No particular speed improvement is guaranteed.
 
-**Unsigned release targeting Windows 8.1 / .NET Framework 4.5.1.** Automated compilation, isolated policy/transaction/resource tests, disposable native Windows fixtures, real resource capture, GUI smoke/screenshots and report/browser checks run on newer Windows. Physical Windows 8.1 testing remains pending. Desktop-setting writes are tested in memory; native fixtures inspect those settings without changing them.
+**Unsigned release targeting Windows 8.1 / .NET Framework 4.5.1.** Automated compilation, isolated policy/transaction/resource tests, disposable native Windows fixtures, real resource capture and a read-only x86 resource-layout probe, GUI smoke/screenshots and report/browser checks run on newer Windows. Physical Windows 8.1 testing remains pending. Desktop-setting writes are tested in memory; native fixtures inspect those settings without changing them.
 
 EXE, portable ZIP, source ZIP and SHA256 checksums are attached. Read the included quick start, feature guide, compatibility, privacy and recovery notes. Public owner: **HamWebDevs**. MIT licensed.

@@ -50,6 +50,6 @@ On Windows with .NET Framework's C# compiler, PowerShell and Git:
 
 The script downloads pinned Microsoft 4.5.1 reference assemblies at build time, verifies their hash, compiles C# 5 and creates the portable EXE/ZIP, source ZIP and SHA256 checksums. No build dependencies are downloaded by the released app.
 
-CI also runs disposable native Run/task fixtures on an explicitly opted-in ephemeral Windows runner, real resource capture and device checks, GUI smoke/screenshot checks at two sizes, and browser/print verification of Windows-generated reports. Real installed services and existing scheduled tasks are never toggled by tests. Desktop-setting writes use isolated in-memory tests; native checks only inspect those values.
+CI also runs disposable native Run/task fixtures on an explicitly opted-in ephemeral Windows runner, real resource capture and a read-only x86 resource-layout probe and device checks, GUI smoke/screenshot checks at two sizes, and browser/print verification of Windows-generated reports. Real installed services and existing scheduled tasks are never toggled by tests. Desktop-setting writes use isolated in-memory tests; native checks only inspect those values.
 
 Public owner: **HamWebDevs**. MIT licensed. Read [AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.

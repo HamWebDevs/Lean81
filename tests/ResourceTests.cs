@@ -6,6 +6,16 @@ using Lean81;
 
 static partial class Tests
 {
+    static void NativeResourceProbe()
+    {
+        Assert(Environment.GetEnvironmentVariable("LEAN81_NATIVE_FIXTURES") == "ephemeral-ci" && Environment.OSVersion.Platform == PlatformID.Win32NT && IntPtr.Size == 4, "resource ABI probe requires explicitly opted-in x86 Windows CI");
+        var capture = CpuCapture.Run(4, System.Threading.CancellationToken.None, null);
+        Assert(capture.Error == null && capture.Samples.Count >= 2 && capture.MemoryBytes > 0);
+        Assert(capture.Samples.All(s => ResourceAnalysis.Number(s.metrics, "commit_bytes").HasValue && ResourceAnalysis.Number(s.metrics, "commit_limit_bytes").HasValue && ResourceAnalysis.Number(s.metrics, "kernel_nonpaged_bytes").HasValue));
+        Assert(capture.Samples.All(s => s.processes.Count <= 20 && (!s.metrics.ContainsKey("disk_busy_pct") || s.metrics["disk_busy_pct"] == null || ResourceAnalysis.Number(s.metrics, "disk_busy_pct", 100).HasValue)));
+        Assert(capture.Samples.SelectMany(s => s.processes).Any(p => p.io_bytes_per_sec.HasValue && p.private_bytes.HasValue));
+        Assert(capture.Samples.Any(s => ResourceAnalysis.Number(s.metrics, "disk_busy_pct", 100).HasValue), "Expected installed PhysicalDisk counters on the Windows CI image");
+    }
     static ItemState Desktop(bool present = false, int value = 1)
     { return new ItemState { Kind = "setting", Scope = "user", Target = "taskbar-animation", Exists = true, Enabled = !present || value != 0, ValueKind = present ? 4 : 0, Value = present ? value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null }; }
     static void ResourceTests()

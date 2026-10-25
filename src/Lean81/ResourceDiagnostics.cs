@@ -47,7 +47,8 @@ namespace Lean81
             {
                 string name = Paths[i, 0]; IntPtr counter; uint type; CounterValue value;
                 object number = null;
-                if (collected && counters.TryGetValue(name, out counter) && PdhGetFormattedCounterValue(counter, 0x200 | 0x8000, out type, out value) == 0
+                // DOUBLE | NOSCALE | NOCAP100: preserve bytes/s and pages/s units.
+                if (collected && counters.TryGetValue(name, out counter) && PdhGetFormattedCounterValue(counter, 0x200 | 0x1000 | 0x8000, out type, out value) == 0
                     && value.Status <= 1 && Product.Finite(value.Value) && value.Value >= 0 && (name != "disk_idle_pct" || value.Value <= 100)) number = value.Value;
                 metrics[name == "disk_idle_pct" ? "disk_busy_pct" : name] = name == "disk_idle_pct" && number != null ? (object)(100 - (double)number) : number;
             }
