@@ -47,7 +47,7 @@ namespace Lean81
                     var current = backend.Read(item.Before);
                     if (current.Fingerprint() != item.Before.Fingerprint()) throw new InvalidOperationException("An item changed since the scan. Rescan before applying anything.");
                     backend.Preflight(current, profile, false);
-                    if (!current.Exists || !current.Enabled) throw new InvalidOperationException("An item is already disabled or missing. Rescan first.");
+                    if (!Policy.NeedsReduction(current)) throw new InvalidOperationException("An item is already reduced or missing. Rescan first.");
                     receipt.Entries.Add(new JournalEntry { Name = item.Name, Original = current, Expected = current.Disabled(), Status = "Pending" });
                 }
                 // Persist the complete before-state before the first system write.
@@ -135,7 +135,7 @@ namespace Lean81
                 Policy.Validate(entry.Original, new UsageProfile(), true);
                 if (!new[] { "Pending", "Applying", "Applied", "Restoring", "Restored", "Needs review" }.Contains(entry.Status))
                     throw new InvalidOperationException("Unsupported entry status.");
-                if (!entry.Original.Exists || !entry.Original.Enabled || entry.Expected.Fingerprint() != entry.Original.Disabled().Fingerprint())
+                if (!Policy.NeedsReduction(entry.Original) || entry.Expected.Fingerprint() != entry.Original.Disabled().Fingerprint())
                     throw new InvalidOperationException("Receipt states do not match a supported disable operation.");
             }
         }

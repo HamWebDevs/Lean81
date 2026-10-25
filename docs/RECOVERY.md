@@ -1,5 +1,9 @@
 # Recovery
 
+In the 1.2 candidate, **Tune result → Restore this tune** opens the recovery group from that session directly. **Recovery → Restore tune group** remains available after restarting Lean81. CPU/RAM/disk observations are session data, not receipts. Closing an app is not reversible by configuration recovery; reopen it manually.
+
+Already-disabled but running optional services can now be stopped and journaled. Recovery preserves that unusual original state: the service is temporarily set to Manual so it can start, then set back to Disabled, including if starting fails. A failed restore is recorded and must be inspected before retrying.
+
 Each batch saves original settings in `%ProgramData%\Lean81` **before** the first write. The folder is restricted to Administrators and SYSTEM. Receipts contain exact registry strings, service start type/delayed/running state, task enabled state and a definition hash, or one of three allowlisted user DWORD values (including its original absence). They are private machine data, not support attachments.
 
 Open Lean81 as the same Windows user, enable administrator mode, and select a receipt in **Recovery**. Review the items and choose **Restore settings**. A restore first checks every pending item against the saved original and expected disabled states. If anything changed independently, the entire restore preflight stops without writes. Lean81 never replaces a new startup command or a changed task definition with an old copy.

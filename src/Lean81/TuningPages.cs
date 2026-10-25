@@ -34,33 +34,29 @@ namespace Lean81
             var effects = new CheckBox { Text = "Reduce desktop effects", AutoSize = true, Checked = true };
             var startup = new CheckBox { Text = "Include recognized startup apps, shortcuts and third-party tasks for unused categories", AutoSize = true, Checked = true };
             var power = new CheckBox { Text = "Select High performance plan (mains required; stays active until changed)", AutoSize = true };
-            choices.Controls.Add(effects); choices.Controls.Add(startup); choices.Controls.Add(power);
+            var closeApps = new CheckBox { Text = "Also review closing running companions in unused categories", AutoSize = true, Checked = true };
+            choices.Controls.Add(effects); choices.Controls.Add(startup); choices.Controls.Add(power); choices.Controls.Add(closeApps);
             var note = new TextBox { Text = lastTune ?? "Maximum reduction assumes no printing, Bluetooth, indexing, preloading, TV, sync, chat or local game launchers. Check anything you need. Windows security, networking and core services stay protected. App updates you disable will need manual attention. No recording or export is required.", Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BackColor = Color.White };
             var actions = new FlowLayoutPanel { WrapContents = true };
             actions.Controls.Add(ActionButton("Review deep tune…", async (s, e) =>
             {
                 if (busy) return;
-                bool includeEffects = effects.Checked, includeStartup = startup.Checked, includePower = power.Checked;
+                bool includeEffects = effects.Checked, includeStartup = startup.Checked, includePower = power.Checked, includeApps = closeApps.Checked;
                 Profiles.Copy(ReadChecks(checks), profile); SaveWorkspace(); bool scanned = await Scan();
                 if (!scanned) return;
                 try
                 {
                     var plan = DeepTunePlan.Build(report, profile, includeEffects, includePower, includeStartup);
-                    if (plan.Items.Count == 0) { status.Text = "No matching enabled settings. Try Maximum reduction or review Startup apps."; return; }
-                    var entries = plan.Items.Select(i => i.Name + "  ·  " + i.Scope + " / " + i.Kind + "\r\n" + i.Tradeoff).Concat(plan.Kept.Select(k => "KEPT: " + k)).ToArray();
-                    if (!ReviewDialog("Review deep tune", entries, "Services are stopped in dependency order, then kept disabled. Startup changes prevent future launches; close running apps separately. Every settings batch belongs to one restore group.", null, backend.IsAdministrator ? "Apply deep tune" : "Enable changes & rescan")) return;
-                    if (!backend.IsAdministrator) { Elevate(); return; }
-                    SetBusy(true, "Applying reviewed deep tune…");
-                    var progress = new Progress<string>(message => status.Text = message);
-                    var result = await Task.Run(() => new DeepTuneEngine(backend, journals).Apply(plan, message => ((IProgress<string>)progress).Report(message)));
-                    lastTune = result.Status + " · " + result.Applied + " settings changed in " + result.Receipts.Count + " recovery batches. Use Recovery → Restore tune group to undo them. Open Running apps to close selected companions now.";
-                    selected.Clear(); await RefreshAfterAction(); ShowPage(11); SetBusy(false, lastTune);
+                    var request = new TuneSessionRequest { Settings = plan, Apps = includeApps ? TuneSessionEngine.SuggestApps(runningApps, profile) : new System.Collections.Generic.List<RunningApp>() };
+                    if (plan.Items.Count + request.Apps.Count == 0) { status.Text = "No matching settings or recognized background companions. Review your kept features or Startup apps."; return; }
+                    if (!ReviewSession(request)) return;
+                    await ApplySession(request);
                 }
                 catch (Exception ex) { SetBusy(false, "Tune stopped. Earlier changes, if any, are saved in Recovery."); Error(ex); }
             }, true));
             actions.Controls.Add(ActionButton("Close background apps", (s, e) => ShowPage(13)));
-            actions.Controls.Add(ActionButton("Recovery", (s, e) => ShowPage(7)));
-            Rows(body, new Control[] { toolbar, list, choices, note, actions }, 42, -1, 78, 70, 48);
+            actions.Controls.Add(ActionButton("Last tune result", (s, e) => ShowPage(14)));
+            Rows(body, new Control[] { toolbar, list, choices, note, actions }, 42, -1, 104, 70, 48);
         }
         void ResourceDetails(TabPage pageTab)
         {

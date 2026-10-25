@@ -1,4 +1,4 @@
-# Using Lean81 1.1
+# Using Lean81 1.2 candidate
 
 ## Deep tune
 
@@ -14,9 +14,23 @@ Open **Deep tune**, choose a preset if useful and check every answer. Checked me
 
 The first four presets keep printing/PDF printers, indexed search, Superfetch and error reporting. Maximum reduction changes those answers as described below. The browser preset also keeps Bluetooth. Untick indexed search or Superfetch yourself if you want to test those tradeoffs. Preloading may help application launches; fewer enabled services does not automatically mean a faster laptop.
 
-**Also include the three desktop effects** is a separate opt-in. **Review deep tune** refreshes the inventory and stages eligible services plus those effects. Read the exact tradeoffs, then apply. Nothing applies just by selecting a preset or building a review. Startup apps and scheduled tasks require individual selection.
+**Reduce desktop effects** and recognized unused startup/task choices have separate checkboxes. **Review deep tune** refreshes the inventory and stages the actual installed choices. Read the exact tradeoffs, then apply. Nothing applies just by selecting a preset or building a review. Unknown startup apps and tasks require individual selection on their inventory pages.
 
-Without administrator rights you can scan, capture, export and save a text review. **Enable changes & rescan** opens Lean81 under the same Windows account. Answers are remembered; build the review again against the fresh elevated scan. No apply plan is imported from a file.
+Without administrator rights you can scan, capture, export and close eligible same-user companions. Setting changes require administrator rights. **Enable changes & rescan** opens Lean81 under the same Windows account. Answers are remembered; build the review again against the fresh elevated scan. No apply plan is imported from a file.
+
+## Combined tuning in 1.2
+
+**Also review closing running companions** connects immediate closure to the same deep-tune review. Only recognized background families in categories you marked unused are suggested. On **Close apps now**, uncheck any process you need, or choose **Keep all apps**. Normal close is the default. Force close is a separate checkbox and can lose app work. **Running apps** remains available for individual closure later.
+
+The reviewed process identities and foreground state are checked again before settings. Missing, changed or foreground apps are kept. Saved settings apply first; a failed settings pass skips app closure. Each app is checked again by the native backend immediately before closing. Cancellation stops observations and remaining app actions, while any current setting pass finishes and keeps its receipts.
+
+The review optionally checks resources for about eight seconds before and eight seconds after tuning, with a two-second settling wait. This adds about 18 seconds and writes no recording file. Turn it off to apply without observations. **Tune result** shows each saved setting and process outcome, plus before/after CPU, available physical RAM, aggregate disk busy and commit. **Remaining load** sorts processes from the after-check by CPU, working-set RAM or read/write I/O; memory-heavy idle apps remain visible. Process I/O includes network/device activity, and shared working-set pages must not be added as total RAM. The result stays in memory for this app session; recovery receipts persist.
+
+Differences require at least three valid intervals, six seconds of data, 80% coverage, complete observations, matching demo/real status and one known unchanged power source. Missing counters stay unavailable. CPU/disk/commit changes are percentage points; available RAM is measured in MiB. These short observations can miss spikes and vary with workload; they do not prove a tune caused an improvement. No working-set sum is presented as freed system RAM.
+
+**Restore this tune** restores the result's saved group after conflict checks. Closed apps are reopened manually. Recovery remains available if a result is lost when Lean81 closes.
+
+An optional service can already have a disabled start type yet still be running. It is now offered for stopping when unused. Running disabled dependents also protect their provider. Restoring this unusual state briefly selects Manual to start the service, then restores Disabled in a finally block. Unsupported delayed-start combinations stay for manual review.
 
 ## Active tuning in 1.1
 

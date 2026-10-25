@@ -6,15 +6,17 @@ Lean81 stops reviewed unused services, prevents recognized background software f
 
 [Download Lean81 1.1](https://github.com/HamWebDevs/Lean81/releases/tag/v1.1.0) · [Quick start](docs/QUICKSTART.txt) · [Deep-tune guide](docs/FEATURES.md) · [Recovery](docs/RECOVERY.md)
 
+**In development: 1.2.0-rc.1.** Deep tune now combines configuration changes and selected running-companion closure in one review. Its result page shows each action, direct group recovery and optional short CPU/RAM/disk observations inside Lean81. The stable download above remains 1.1. See the [candidate notes](docs/RELEASE-1.2.0-rc.1.md) and [release validation plan](docs/RELEASE-READINESS.md). [View the candidate result screen](docs/screenshots/tune-result.png) (synthetic data).
+
 ![Deep tune with synthetic data](docs/screenshots/deep-tune.png)
 
 ## Start here
 
 1. Extract **Lean81-1.1.0-portable.zip** and open **Lean81.exe**.
 2. In **Deep tune**, click **Maximum reduction**. Check anything you need to keep: this preset assumes no printing, Bluetooth, indexing, Superfetch, TV, sync, chat or local game launchers. Compatibility assistance and Windows themes stay kept unless you opt out.
-3. Choose **Review deep tune**, read the actual installed items and apply. Services are stopped now and kept disabled. Startup changes prevent future launches. If administrator permission is needed, use the same Windows account and build the review again after elevation.
-4. Open **Running apps** to close selected recognized companions now. Normal close is the default; force close is a separate option for tray/helper processes. Review the list before closing anything.
-5. Use **Recovery → Restore tune group** to undo a whole tune. Closed apps and their unsaved state are not restored automatically; reopen apps yourself.
+3. Choose **Review deep tune**, read **Settings** and **Close apps now**, and uncheck any companion you need. Normal close is the default; force close is an explicit choice. If administrator permission is needed for settings, use the same Windows account and build the review again after elevation.
+4. Apply the review. Services stop now and stay disabled; startup changes prevent future launches; selected companions receive close requests. Optional short resource checks run inside Lean81, with each result in **Tune result**. Keep your workload similar during both observations.
+5. Use **Tune result → Restore this tune** or **Recovery → Restore tune group** to undo saved settings. Closed apps and their unsaved state are not restored automatically; reopen apps yourself. **Running apps** remains available for separate closure.
 
 No capture, external analysis app or trace export is needed to tune the laptop.
 

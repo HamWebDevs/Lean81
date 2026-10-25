@@ -19,7 +19,7 @@ static partial class Tests
         public ItemState Read(ItemState identity)
         {
             var copy = States[identity.Identity()].Copy(); string[] edges;
-            if (copy.Kind == "service" && Edges.TryGetValue(copy.Target, out edges)) copy.Dependents = edges.Where(n => States.Values.Any(s => s.Kind == "service" && s.Target == n && s.StartType != 4)).ToArray();
+            if (copy.Kind == "service" && Edges.TryGetValue(copy.Target, out edges)) copy.Dependents = edges.Where(n => States.Values.Any(s => s.Kind == "service" && s.Target == n && (s.StartType != 4 || s.Running))).ToArray();
             return copy;
         }
         public ScanReport Scan(UsageProfile profile)
@@ -90,6 +90,7 @@ static partial class Tests
     }
     static void NativeDeepFixtures()
     {
+        NativeServiceFixtures();
         var backend = new WindowsBackend(); var store = new JournalStore(backend.MachineScope); string folder = StartupFiles.DirectoryFor("user"); bool existed = Directory.Exists(folder);
         string name = "Lean81Fixture" + Guid.NewGuid().ToString("N") + ".lnk", path = Path.Combine(folder, name);
         string appsRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Lean81Fixture" + Guid.NewGuid().ToString("N")); Process process = null;

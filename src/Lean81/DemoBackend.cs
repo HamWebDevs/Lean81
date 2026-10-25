@@ -38,7 +38,7 @@ namespace Lean81
             {
                 var state = Read(stored);
                 var option = Policy.Services.FirstOrDefault(s => s.Name == state.Target);
-                bool can = state.Exists && state.Enabled; try { Policy.Validate(state, profile, false); } catch { can = false; }
+                bool can = Policy.NeedsReduction(state); try { Policy.Validate(state, profile, false); } catch { can = false; }
                 var desktop = DesktopSettings.Options.FirstOrDefault(s => s.Id == state.Target);
                 report.Items.Add(new ScanItem { Id = Product.Hash(state.Identity()), Name = state.Kind == "power" ? "High performance power plan" : desktop != null ? desktop.Title : option == null ? state.Target.Split('\\').Last() : option.Title,
                     Kind = state.Kind, Scope = state.Scope, Before = state.Copy(), Status = Policy.StateLabel(state), CanChange = can, Suggested = can && option != null,
