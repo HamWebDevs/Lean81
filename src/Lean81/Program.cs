@@ -4,12 +4,12 @@ using System.Security.Principal;
 using System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("Lean81")]
-[assembly: System.Reflection.AssemblyDescription("A small, reversible background-load workbench for Windows 8.1 laptops")]
+[assembly: System.Reflection.AssemblyDescription("Active, reversible background-load tuning for Windows 8.1 laptops")]
 [assembly: System.Reflection.AssemblyCompany("HamWebDevs")]
 [assembly: System.Reflection.AssemblyProduct("Lean81")]
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2026 HamWebDevs")]
-[assembly: System.Reflection.AssemblyVersion("1.0.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("1.0.0.0")]
+[assembly: System.Reflection.AssemblyVersion("1.1.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("1.1.0.0")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.5.1", FrameworkDisplayName = ".NET Framework 4.5.1")]
 
 namespace Lean81
@@ -45,8 +45,8 @@ namespace Lean81
                                 int count = form.SmokePageCount;
                                 if (page < count) { form.SmokePage(page); form.Refresh(); form.ValidateSmokeLayout(); form.SaveScreenshot(Path.Combine(output, "page-" + page + ".png")); page++; }
                                 else if (page < count * 2) { form.ClientSize = new System.Drawing.Size(980, 620); form.SmokePage(page - count); form.Refresh(); form.ValidateSmokeLayout(); form.SaveScreenshot(Path.Combine(output, "small-" + (page - count) + ".png")); page++; }
-                                else if (page == count * 2) { timer.Stop(); form.SmokeReviewScreenshot(Path.Combine(output, "review-dialog.png")); form.SmokeSetupScreenshot(Path.Combine(output, "quick-setup.png")); form.SmokeComparisonScreenshot(Path.Combine(output, "comparison.png")); form.SmokeResourcesScreenshot(Path.Combine(output, "resources.png")); form.SmokeReport(output); form.SmokeInteractions(); form.SmokeTuningInteractions(); page++; timer.Start(); }
-                                else { timer.Stop(); File.WriteAllText(Path.Combine(output, "gui-smoke.txt"), "PASS: " + count + " pages at two sizes, cancelled review/setup/report dialogs, saved-result comparison, generated report variants, checkbox/filter/protection interactions, quick-tune preset isolation, desktop selection, resource sorting, missing-data chart rendering and demo tool launches."); form.Close(); }
+                                else if (page == count * 2) { timer.Stop(); form.SmokeReviewScreenshot(Path.Combine(output, "review-dialog.png")); form.SmokeSetupScreenshot(Path.Combine(output, "quick-setup.png")); form.SmokeComparisonScreenshot(Path.Combine(output, "comparison.png")); form.SmokeResourcesScreenshot(Path.Combine(output, "resources.png")); form.SmokeReport(output); form.SmokeInteractions(); form.SmokeTuningInteractions(); form.SmokeActiveActions(); page++; timer.Start(); }
+                                else { timer.Stop(); File.WriteAllText(Path.Combine(output, "gui-smoke.txt"), "PASS: " + count + " pages at two sizes, cancelled review/setup/report dialogs, saved-result comparison, generated report variants, checkbox/filter/protection interactions, quick-tune preset isolation, desktop selection, resource sorting, missing-data chart rendering, dependency tune/group restore, reviewed demo app closure and demo tool launches."); form.Close(); }
                             }
                             catch (Exception ex) { smokeError = ex; timer.Stop(); form.Close(); }
                         };

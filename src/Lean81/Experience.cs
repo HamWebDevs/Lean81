@@ -12,7 +12,7 @@ namespace Lean81
 {
     public static class Profiles
     {
-        public static readonly string[] Names = { "Keep every feature", "No home or media sharing", "No sharing, Bluetooth or touch", "Browser / cloud gaming laptop" };
+        public static readonly string[] Names = { "Keep every feature", "No home or media sharing", "No sharing, Bluetooth or touch", "Browser / cloud gaming laptop", "Maximum reduction: browser / cloud games" };
         public static UsageProfile Preset(int index)
         {
             if (index < 0 || index >= Names.Length) throw new ArgumentOutOfRangeException("index");
@@ -20,6 +20,13 @@ namespace Lean81
             if (index > 0) p.HomeGroup = p.MediaSharing = p.OfflineFiles = false;
             if (index == 2) p.Bluetooth = p.TouchKeyboard = false;
             if (index == 3) p.HomeGroup = p.MediaSharing = p.OfflineFiles = p.TouchKeyboard = p.Scanning = p.PortableDevices = p.LinkTracking = false;
+            if (index == 4)
+            {
+                p.Printing = p.Bluetooth = p.IndexedSearch = p.TouchKeyboard = p.HomeGroup = p.MediaSharing = p.OfflineFiles = p.Prefetch = false;
+                p.Scanning = p.PortableDevices = p.ErrorReporting = p.LinkTracking = p.Telemetry = p.MediaCenter = p.DiagnosticHelpers = false;
+                p.AppUpdaters = p.GameLaunchers = p.CloudSync = p.ChatApps = p.MusicApps = false;
+                // Compatibility and the theme stay available unless the user opts out.
+            }
             return p;
         }
         public static void Copy(UsageProfile source, UsageProfile target)
@@ -28,6 +35,14 @@ namespace Lean81
             target.TouchKeyboard = source.TouchKeyboard; target.HomeGroup = source.HomeGroup; target.MediaSharing = source.MediaSharing;
             target.OfflineFiles = source.OfflineFiles; target.Prefetch = source.Prefetch;
             target.Scanning = source.Scanning; target.PortableDevices = source.PortableDevices; target.ErrorReporting = source.ErrorReporting; target.LinkTracking = source.LinkTracking;
+            target.Telemetry = source.Telemetry; target.MediaCenter = source.MediaCenter; target.Compatibility = source.Compatibility; target.DiagnosticHelpers = source.DiagnosticHelpers; target.Themes = source.Themes;
+            target.AppUpdaters = source.AppUpdaters; target.GameLaunchers = source.GameLaunchers; target.CloudSync = source.CloudSync; target.ChatApps = source.ChatApps; target.MusicApps = source.MusicApps;
+        }
+        public static UsageProfile AllUnused()
+        {
+            var p = new UsageProfile();
+            foreach (var property in typeof(UsageProfile).GetProperties().Where(x => x.PropertyType == typeof(bool))) property.SetValue(p, false, null);
+            return p;
         }
         public static string FeatureReason(ScanItem item, UsageProfile profile)
         {

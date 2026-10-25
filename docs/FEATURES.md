@@ -1,8 +1,8 @@
-# Using Lean81 1.0
+# Using Lean81 1.1
 
-## Quick tune
+## Deep tune
 
-Open **Quick tune**, choose a preset if useful and check every answer. Checked means you use the feature, or want to keep it. Unticked means Lean81 may offer its installed optional service for disabling. A service with enabled dependents stays protected. A preset never applies settings.
+Open **Deep tune**, choose a preset if useful and check every answer. Checked means you use the feature, or want to keep it. Unticked means Lean81 may offer its installed optional service for disabling. A service with enabled dependents stays protected. A preset never applies settings.
 
 | Preset | Answers it clears |
 | --- | --- |
@@ -10,18 +10,35 @@ Open **Quick tune**, choose a preset if useful and check every answer. Checked m
 | No home or media sharing | HomeGroup, media sharing, offline network files |
 | No sharing, Bluetooth or touch | The sharing answers above, plus Bluetooth and touch/pen/on-screen keyboard |
 | Browser / cloud gaming laptop | Sharing, touch/pen/on-screen keyboard, scanner/image acquisition, portable-device library synchronization, moved-file link tracking |
+| Maximum reduction | The above plus printing, Bluetooth, indexing, Superfetch, error reporting, optional telemetry/diagnostic helpers, TV and recognized companion categories |
 
-Every preset keeps printing/PDF printers, indexed search, Superfetch and error reporting. The browser preset also keeps Bluetooth. Untick indexed search or Superfetch yourself if you want to test those tradeoffs. Preloading may help application launches; fewer enabled services does not automatically mean a faster laptop.
+The first four presets keep printing/PDF printers, indexed search, Superfetch and error reporting. Maximum reduction changes those answers as described below. The browser preset also keeps Bluetooth. Untick indexed search or Superfetch yourself if you want to test those tradeoffs. Preloading may help application launches; fewer enabled services does not automatically mean a faster laptop.
 
-**Also include the three desktop effects** is a separate opt-in. **Build my review** refreshes the inventory and stages eligible services plus those effects. Read the exact tradeoffs, then apply. Nothing applies just by selecting a preset or building a review. Startup apps and scheduled tasks require individual selection.
+**Also include the three desktop effects** is a separate opt-in. **Review deep tune** refreshes the inventory and stages eligible services plus those effects. Read the exact tradeoffs, then apply. Nothing applies just by selecting a preset or building a review. Startup apps and scheduled tasks require individual selection.
 
 Without administrator rights you can scan, capture, export and save a text review. **Enable changes & rescan** opens Lean81 under the same Windows account. Answers are remembered; build the review again against the fresh elevated scan. No apply plan is imported from a file.
 
+## Active tuning in 1.1
+
+Lean81 starts on **Deep tune**. **Maximum reduction** fills unused-feature answers for a browser/cloud-gaming laptop. Check anything you need before reviewing. It disables indexing/preloading in the proposed answers and assumes no printing, Bluetooth, scanning, TV, sync, chat, music or local game launchers. Compatibility assistance and visual themes stay kept. Disabling preloading can slow application launches; app updaters you turn off need manual attention.
+
+The review may include recognized unused startup entries and third-party tasks, plus optional effects and the separately selected power plan. Unknown startup software still requires individual selection. Service providers are included only if all their enabled dependents are also included. The engine applies leaf services first, refreshes state between passes and records batches in one recovery group. A partial failure leaves earlier successful changes recorded, not silently undone.
+
+**Running apps** is an action page. Select recognized companions to close now. A normal close request is the default; **Force close** may be needed for tray/helper processes. Closing can interrupt sync, downloads, music, calls or unsaved app state. The catalog covers named OneDrive, Dropbox, Steam, Epic, GOG Galaxy, Discord, Slack, Teams, Skype, Spotify and Adobe Creative Cloud executables in matching vendor locations. This is recognition, not a signature/trust verifier. Windows paths, browsers, critical processes, other users/sessions and foreground app families are excluded. PID, creation time, owner, session and executable identity are rechecked on an open handle before an action. Apps are not automatically relaunched.
+
+Startup-folder controls cover regular `.lnk`/`.url` files up to 16 KiB. Targets are never executed or resolved during inspection. Redirected paths, protected content/attributes, unsupported ownership and cross-volume moves are kept for manual review. Same-volume original files move to private backups. Recovery checks bytes and file metadata, restores original ownership/permission rules at the original location and refuses a new file occupying that name. Windows may refresh automatic inheritance bookkeeping flags while retaining the same permission rules.
+
+**Recovery → Restore tune group** restores an entire tune in reverse batch order, including providers before dependents. It checks pending receipts for conflicts before group writes. Previously restored receipts are skipped. Closed apps and app work are not restored by configuration recovery.
+
+The **High performance** plan is opt-in. It selects an existing scheme after a fresh mains-power check, saves the previous scheme and never rewrites plan internals. It can use more heat/energy and remains active until changed or restored; no resident watcher changes it on unplug.
+
+No capture or external analysis app is required for any of these actions.
+
 ## Background choices and desktop effects
 
-**Startup apps** covers supported HKCU/HKLM Run values. Changes affect future sign-ins; already running apps are not killed. **Scheduled tasks** disables future launches, without stopping a running instance. System and recognized security/hardware tasks are inspection only.
+**Startup apps** covers supported HKCU/HKLM Run values and bounded user/common Startup-folder shortcuts. Changes affect future sign-ins; already running apps are not killed. **Scheduled tasks** disables future launches, without stopping a running instance. System and recognized security/hardware tasks are inspection only.
 
-**Optional services** offers 13 allowlisted services across printing, Bluetooth, indexed search, touch input, HomeGroup, media sharing, offline files, Superfetch, scanner/image acquisition, portable-device synchronization, error reporting and file-link tracking. Changing a service disables its start type and stops that service only; dependents are not stopped recursively. Absent services are skipped.
+**Optional services** offers 26 allowlisted services across printing, Bluetooth, indexed search, touch input, HomeGroup, media sharing, offline files, Superfetch, scanner/image acquisition, portable-device synchronization, error reporting and file-link tracking. Changing a service disables its start type and stops that service only; dependents are not stopped recursively. Absent services are skipped.
 
 **Desktop effects** has three fixed Explorer settings: taskbar animations, desktop Peek and icon-label shadows. Selected DWORDs are set to zero. Exact previous values, including absence, are saved. Only existing settings keys are used. Peek uses HKCU\Software\Microsoft\Windows\DWM; the other two use HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced. Sign out and back in to refresh Explorer; Lean81 does not restart Explorer or close your apps. Shadows can affect text readability on your wallpaper.
 
@@ -65,6 +82,6 @@ Up to 12 aggregate results are retained, including the chosen baseline. New summ
 
 ## Upgrade
 
-Close the old app and extract the new ZIP into a new folder. Keep `%ProgramData%\Lean81` for original settings and `%LocalAppData%\Lean81` for preferences/history. Receipts and workspaces from 0.1–0.3 remain supported. New feature answers default to kept when absent from older preferences.
+Close the old app and extract the new ZIP into a new folder. Keep `%ProgramData%\Lean81` for original settings and `%LocalAppData%\Lean81` for preferences/history. Receipts and workspaces from 0.1–1.0 remain supported. New feature answers default to kept when absent from older preferences.
 
 The EXE is unsigned and targets Windows 8.1 / .NET Framework 4.5.1. Automated checks use newer Windows; physical Windows 8.1 validation is pending. See [COMPATIBILITY.md](COMPATIBILITY.md) and [PRIVACY.md](PRIVACY.md).

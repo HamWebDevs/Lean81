@@ -79,7 +79,7 @@ if ($Gui) {
     if ($process.ExitCode -ne 0 -or !(Test-Path (Join-Path $guiDir 'gui-smoke.txt'))) { throw 'GUI smoke failed; inspect GUI artifacts.' }
 }
 if ($Package) {
-    $version = '1.0.0'
+    $version = '1.1.0'
     $portable = Join-Path $out ('Lean81-' + $version + '-portable')
     if (Test-Path $portable) { Remove-Item -Recurse -Force $portable }
     New-Item -ItemType Directory $portable | Out-Null

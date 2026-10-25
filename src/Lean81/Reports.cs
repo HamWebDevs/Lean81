@@ -69,7 +69,7 @@ namespace Lean81
             html.Append("<p class=\"note\">Two-second sampling can miss short spikes and inaccessible processes. There is no input-latency or wake-delay measurement. Matching recorded conditions do not prove matching activity or causality.</p></section>");
             Device(html, device);
             html.Append("<section id=\"inventory\"><h2>Background inventory</h2><div class=\"table-wrap\"><table class=\"wide\"><caption>Items observed in the scan</caption><thead><tr><th scope=\"col\">Category</th><th scope=\"col\">Found</th><th scope=\"col\">Selectable for review</th><th scope=\"col\">Kept / inspection only</th></tr></thead><tbody>");
-            foreach (var kind in new[] { "startup", "task", "service", "setting" })
+            foreach (var kind in new[] { "startup", "startupfile", "task", "service", "setting", "power" })
             {
                 int total = scan.Items.Count(i => i.Kind == kind), selectable = scan.Items.Count(i => i.Kind == kind && i.CanChange);
                 html.Append("<tr><th scope=\"row\">").Append(H(kind)).Append("</th><td>").Append(total).Append("</td><td>").Append(selectable).Append("</td><td>").Append(total - selectable).Append("</td></tr>");

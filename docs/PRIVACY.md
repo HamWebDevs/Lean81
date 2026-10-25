@@ -5,7 +5,7 @@ Lean81 has no telemetry, upload endpoint, account, remote plugin loader, residen
 | Data | Location | Contents |
 | --- | --- | --- |
 | Preferences and resource history | `%LocalAppData%\Lean81\workspace.json` | Usage answers, workload label, baseline ID and up to 12 numeric CPU/resource summaries with hashed machine/hardware identities |
-| Recovery receipts | `%ProgramData%\Lean81` | Private exact original settings, including startup command strings; restricted to Administrators and SYSTEM |
+| Recovery receipts | `%ProgramData%\Lean81` | Private original settings, startup command strings, shortcut bytes/security descriptors and saved power-plan GUIDs; restricted to Administrators and SYSTEM |
 | Current process observations | App memory | Process names, IDs, CPU, working-set/private memory, start-time identity and read/write I/O for the active capture |
 | Explicit exports | Your selected file | The format and name options you chose |
 
@@ -18,3 +18,5 @@ HTML reports omit software names by default, encode optional names and contain n
 JSONL traces omit process names by default, but include numeric process IDs, working-set/private memory and read/write I/O. Raw process start-time identities are used only in memory and are not exported. CSV exports omit names by default and neutralize formula-leading names when names are included. Neither format includes startup commands or executable-path fields. A text review contains names and tradeoffs from the selected review, never an executable action plan.
 
 To remove a saved result, use **Saved results & baseline → Delete selected result**. To reset all preferences/history, close Lean81 and remove `workspace.json`. This does not undo Windows settings. To undo settings, use Recovery first. Do not delete the private recovery directory while you still need its original settings.
+
+Version 1.1 also holds recognized running companion names, executable paths, owner SIDs, sessions, PID/creation-time identities and working-set readings in memory for reviewed closure. These are not added to aggregate capture history or uploaded. Startup backup files remain inside the protected ProgramData directory until restored; preserve that directory with its private receipts. No profile-derived apply plan is imported into the elevated process.

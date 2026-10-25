@@ -26,9 +26,22 @@ namespace Lean81
             new ServiceOption("stisvc", "scanning", "Scanner and camera image acquisition", "Scanner and camera software using Windows Image Acquisition may stop working. This is separate from printing."),
             new ServiceOption("WpdBusEnum", "portable", "Portable-device library synchronization", "Portable media devices may not synchronize or be discovered by some applications. Restore before using affected phone or media-device software."),
             new ServiceOption("WerSvc", "errors", "Windows error-reporting service", "Windows error reports and associated diagnostic assistance may be unavailable. This does not disable antivirus or updates."),
-            new ServiceOption("TrkWks", "links", "Tracking links to moved files", "Some shortcuts and linked files may no longer follow files moved between locations. Existing files are not removed.")
+            new ServiceOption("TrkWks", "links", "Tracking links to moved files", "Some shortcuts and linked files may no longer follow files moved between locations. Existing files are not removed."),
+            new ServiceOption("Fax", "printing", "Fax service", "Sending or receiving faxes through Windows will be unavailable."),
+            new ServiceOption("ehRecvr", "tv", "Media Center TV receiver", "Windows Media Center TV reception and recordings will stop. Keep this if you record TV."),
+            new ServiceOption("ehSched", "tv", "Media Center recording scheduler", "Scheduled Windows Media Center recordings will stop. Keep this if you record TV."),
+            new ServiceOption("DiagTrack", "telemetry", "Diagnostic tracking / experience reports", "Optional Windows diagnostic tracking will be unavailable. Windows Update and security services are kept."),
+            new ServiceOption("PcaSvc", "compatibility", "Program Compatibility Assistant", "Automatic compatibility assistance for older desktop software will stop. Keep this if older games/apps need it."),
+            new ServiceOption("WdiServiceHost", "diagnostics", "Diagnostic service host", "Some automatic Windows troubleshooting and diagnostic assistance will be unavailable."),
+            new ServiceOption("WdiSystemHost", "diagnostics", "Diagnostic system host", "Some automatic Windows troubleshooting and diagnostic assistance will be unavailable."),
+            new ServiceOption("Themes", "themes", "Windows visual themes", "Windows will use a simpler appearance. This does not disable Desktop Window Manager or graphics drivers."),
+            new ServiceOption("Steam Client Service", "launchers", "Steam client helper service", "Steam installation, updates or games may need this service restored. Cloud games in a browser do not use the local Steam client."),
+            new ServiceOption("AdobeARMservice", "updaters", "Adobe Acrobat/Reader updater", "Automatic Acrobat/Reader updates will stop. Update these applications manually or restore this service."),
+            new ServiceOption("gupdate", "updaters", "Google application update service", "Applications using this Google updater will need manual updates or this service restored. Windows Update is unaffected."),
+            new ServiceOption("gupdatem", "updaters", "Google application update helper", "Applications using this Google updater will need manual updates or this service restored. Windows Update is unaffected."),
+            new ServiceOption("SkypeUpdate", "updaters", "Skype update service", "Automatic updates through the legacy Skype update service will stop.")
         };
-        static readonly Regex Protected = new Regex(@"(?i)(defender|securityhealth|antivirus|msascui|mpcmdrun|smartscreen|avast|avira|bitdefender|kaspersky|malwarebytes|mcafee|norton|symantec|sophos|webroot|trendmicro|eset|syntp|etdctrl|touchpad|hotkey|igfxtray|hkcmd)", RegexOptions.Compiled);
+        static readonly Regex Protected = new Regex(@"(?i)(defender|securityhealth|antivirus|msascui|mpcmdrun|smartscreen|avast|avira|bitdefender|kaspersky|malwarebytes|mcafee|norton|symantec|sophos|webroot|trendmicro|eset|syntp|etdctrl|touchpad|hotkey|igfxtray|hkcmd|ctfmon|userinit|nvcontainer|audiodg|wudfhost)", RegexOptions.Compiled);
         public static bool IsProtectedText(string value) { return Protected.IsMatch(value ?? ""); }
         public static bool ValidName(string value) { return !String.IsNullOrWhiteSpace(value) && value.Length <= 256 && !value.Any(Char.IsControl); }
         public static bool ValidTaskPath(string value)
@@ -49,6 +62,8 @@ namespace Lean81
                 if (!restoring && (state.Dependents ?? new string[0]).Length != 0)
                     throw new InvalidOperationException("A non-disabled dependent service needs this service. No dependent services will be stopped.");
             }
+            else if (state.Kind == "startupfile") StartupFiles.Validate(state);
+            else if (state.Kind == "power") PowerPlans.Validate(state);
             else if (state.Kind == "setting")
             {
                 int number;
@@ -79,6 +94,7 @@ namespace Lean81
             if (!state.Exists) return "Absent";
             if (state.Kind == "service") return (state.StartType == 4 ? "Disabled" : state.StartType == 2 ? "Automatic" : "Manual") + (state.Running ? " / running" : " / stopped");
             if (state.Kind == "setting") return state.ValueKind == 0 ? "Windows default" : state.Enabled ? "Enabled (" + state.Value + ")" : "Reduced (0)";
+            if (state.Kind == "power") return state.Value == PowerPlans.HighPerformance ? "High performance" : state.Value == PowerPlans.Balanced ? "Balanced" : "Saved Windows power plan";
             return state.Enabled ? "Enabled" : "Disabled";
         }
     }

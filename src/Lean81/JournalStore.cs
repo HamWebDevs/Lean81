@@ -40,6 +40,19 @@ namespace Lean81
             if (!security.AreAccessRulesProtected || !Trusted(security.GetOwner(typeof(SecurityIdentifier)))) throw new InvalidOperationException("Recovery folder has an unexpected owner or inherited permissions. No changes were made.");
             CheckRules(security);
         }
+        internal string Quarantine()
+        {
+            EnsureDirectory(); string path = Path.Combine(directory, "startup-backups"); NoLinks(path);
+            if (!Directory.Exists(path))
+            {
+                var acl = new DirectorySecurity(); acl.SetOwner(Admins); acl.SetAccessRuleProtection(true, false);
+                foreach (var id in new[] { Admins, SystemAccount }) acl.AddAccessRule(new FileSystemAccessRule(id, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                Directory.CreateDirectory(path, acl);
+            }
+            var current = Directory.GetAccessControl(path);
+            if (!current.AreAccessRulesProtected || !Trusted(current.GetOwner(typeof(SecurityIdentifier)))) throw new InvalidOperationException("Startup backup directory is not trusted.");
+            CheckRules(current); return path;
+        }
         static void CheckRules(FileSystemSecurity security)
         {
             bool admin = false, system = false;

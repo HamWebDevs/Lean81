@@ -22,29 +22,45 @@ namespace Lean81
     }
     public sealed partial class MainForm
     {
+        string lastTune;
         void QuickTunePage()
         {
-            Heading("Less background. More breathing room.", "Keep features checked if you use them. Build a review of matching services, then apply when ready.");
+            Heading("Deep tune this laptop.", "Choose what stays. Lean81 stops unused service groups and prevents recognized background software from returning.");
             var body = new Panel(); Body(body);
             var list = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, BackColor = Color.White, Padding = new Padding(14, 8, 8, 8) };
-            var checks = FeatureChecks(list, profile); var toolbar = new FlowLayoutPanel(); toolbar.Controls.Add(Presets(checks));
-            var effects = new CheckBox { Text = "Also include the three desktop effects in my review", AutoSize = true, Margin = new Padding(0, 8, 0, 0) };
-            var note = new TextBox { Text = "Browser / cloud gaming is a starting point: check every answer. Untick indexed search or Superfetch only if you want to try those tradeoffs. Startup apps are chosen individually. Settings are backed up before changes; Recovery restores them. Effects may need sign-out. Services with enabled dependents stay protected.", Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            var checks = FeatureChecks(list, profile); var toolbar = new FlowLayoutPanel(); var presets = Presets(checks); toolbar.Controls.Add(presets);
+            toolbar.Controls.Add(ActionButton("Maximum reduction", (s, e) => presets.SelectedIndex = 5, true));
+            var choices = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false };
+            var effects = new CheckBox { Text = "Reduce desktop effects", AutoSize = true, Checked = true };
+            var startup = new CheckBox { Text = "Include recognized startup apps, shortcuts and third-party tasks for unused categories", AutoSize = true, Checked = true };
+            var power = new CheckBox { Text = "Select High performance plan (mains required; stays active until changed)", AutoSize = true };
+            choices.Controls.Add(effects); choices.Controls.Add(startup); choices.Controls.Add(power);
+            var note = new TextBox { Text = lastTune ?? "Maximum reduction assumes no printing, Bluetooth, indexing, preloading, TV, sync, chat or local game launchers. Check anything you need. Windows security, networking and core services stay protected. App updates you disable will need manual attention. No recording or export is required.", Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BackColor = Color.White };
             var actions = new FlowLayoutPanel { WrapContents = true };
-            actions.Controls.Add(ActionButton("Build my review…", async (s, e) =>
+            actions.Controls.Add(ActionButton("Review deep tune…", async (s, e) =>
             {
-                if (busy) return; bool includeEffects = effects.Checked;
+                if (busy) return;
+                bool includeEffects = effects.Checked, includeStartup = startup.Checked, includePower = power.Checked;
                 Profiles.Copy(ReadChecks(checks), profile); SaveWorkspace(); bool scanned = await Scan();
-                if (!scanned || choicesStale || report == null || busy) return;
-                selected.Clear();
-                foreach (var item in TuningPlan.Build(report, profile, includeEffects)) selected[item.Id] = item;
-                UpdateSelection();
-                if (selected.Count == 0) { status.Text = "No matching enabled settings · adjust your answers or review Startup apps"; return; }
-                await ReviewChanges();
+                if (!scanned) return;
+                try
+                {
+                    var plan = DeepTunePlan.Build(report, profile, includeEffects, includePower, includeStartup);
+                    if (plan.Items.Count == 0) { status.Text = "No matching enabled settings. Try Maximum reduction or review Startup apps."; return; }
+                    var entries = plan.Items.Select(i => i.Name + "  ·  " + i.Scope + " / " + i.Kind + "\r\n" + i.Tradeoff).Concat(plan.Kept.Select(k => "KEPT: " + k)).ToArray();
+                    if (!ReviewDialog("Review deep tune", entries, "Services are stopped in dependency order, then kept disabled. Startup changes prevent future launches; close running apps separately. Every settings batch belongs to one restore group.", null, backend.IsAdministrator ? "Apply deep tune" : "Enable changes & rescan")) return;
+                    if (!backend.IsAdministrator) { Elevate(); return; }
+                    SetBusy(true, "Applying reviewed deep tune…");
+                    var progress = new Progress<string>(message => status.Text = message);
+                    var result = await Task.Run(() => new DeepTuneEngine(backend, journals).Apply(plan, message => ((IProgress<string>)progress).Report(message)));
+                    lastTune = result.Status + " · " + result.Applied + " settings changed in " + result.Receipts.Count + " recovery batches. Use Recovery → Restore tune group to undo them. Open Running apps to close selected companions now.";
+                    selected.Clear(); await RefreshAfterAction(); ShowPage(11); SetBusy(false, lastTune);
+                }
+                catch (Exception ex) { SetBusy(false, "Tune stopped. Earlier changes, if any, are saved in Recovery."); Error(ex); }
             }, true));
-            actions.Controls.Add(ActionButton("Review startup apps", (s, e) => ShowPage(2)));
-            actions.Controls.Add(ActionButton("Desktop effects", (s, e) => ShowPage(12)));
-            Rows(body, new Control[] { toolbar, list, effects, note, actions }, 42, -1, 36, 80, 48);
+            actions.Controls.Add(ActionButton("Close background apps", (s, e) => ShowPage(13)));
+            actions.Controls.Add(ActionButton("Recovery", (s, e) => ShowPage(7)));
+            Rows(body, new Control[] { toolbar, list, choices, note, actions }, 42, -1, 78, 70, 48);
         }
         void ResourceDetails(TabPage pageTab)
         {

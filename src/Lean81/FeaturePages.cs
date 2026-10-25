@@ -28,7 +28,7 @@ namespace Lean81
         }
         void Overview()
         {
-            Heading("Make room for what you use.", "Quick tune builds a reversible review. Resource capture shows CPU, RAM and disk pressure while you work.");
+            Heading("Make room for what you use.", "Deep tune stops unused service groups and trims known background launches. Close selected companion apps inside Lean81.");
             var body = new Panel(); Body(body);
             var cards = new TableLayoutPanel { ColumnCount = 3, RowCount = 1 };
             for (int i = 0; i < 3; i++) cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
@@ -42,11 +42,11 @@ namespace Lean81
                 panel.Controls.Add(number); panel.Controls.Add(caption); cards.Controls.Add(panel, i, 0);
             }
             var guide = new Panel { BackColor = Color.White, Padding = new Padding(16, 10, 12, 8) };
-            var text = LabelAt("1   Quick tune: choose features you use and build a review\n2   Trim recognized startup apps and optional desktop effects\n3   Capture CPU, memory and disk during a slowdown", 11); text.Dock = DockStyle.Fill; guide.Controls.Add(text);
+            var text = LabelAt("1   Deep tune: choose what stays, review and apply\n2   Running apps: close selected background companions now\n3   Recovery: restore a complete tune when you need a feature back", 11); text.Dock = DockStyle.Fill; guide.Controls.Add(text);
             var actions = new FlowLayoutPanel { WrapContents = true };
-            actions.Controls.Add(ActionButton("Quick tune", (s, e) => ShowPage(11), true));
+            actions.Controls.Add(ActionButton("Deep tune", (s, e) => ShowPage(11), true));
             actions.Controls.Add(ActionButton("Recommendations", (s, e) => ShowPage(9)));
-            actions.Controls.Add(ActionButton("Capture resources", (s, e) => ShowPage(6)));
+            actions.Controls.Add(ActionButton("Close background apps", (s, e) => ShowPage(13)));
             var second = new FlowLayoutPanel { WrapContents = true };
             second.Controls.Add(ActionButton("Rescan laptop", async (s, e) => await Scan()));
             second.Controls.Add(ActionButton("Export report…", (s, e) => ExportReport()));
@@ -56,10 +56,10 @@ namespace Lean81
             next.Padding = new Padding(2, 10, 0, 0);
             Rows(body, new Control[] { cards, guide, next, actions, second }, 102, 105, -1, 48, 48);
         }
-        static string[] FeatureLabels = { "Printing, including PDF / virtual printers", "Bluetooth devices", "Indexed file and email search", "Touch, pen or the on-screen keyboard", "HomeGroup sharing", "Windows Media Player network sharing", "Offline network files", "Application preloading / Superfetch", "Scanners or camera image-acquisition software", "Portable-device library synchronization", "Windows error reporting and diagnostic assistance", "Shortcuts that track moved files" };
-        static bool[] FeatureValues(UsageProfile p) { return new[] { p.Printing, p.Bluetooth, p.IndexedSearch, p.TouchKeyboard, p.HomeGroup, p.MediaSharing, p.OfflineFiles, p.Prefetch, p.Scanning, p.PortableDevices, p.ErrorReporting, p.LinkTracking }; }
+        static string[] FeatureLabels = { "Printing, including PDF / virtual printers", "Bluetooth devices", "Indexed file and email search", "Touch, pen or the on-screen keyboard", "HomeGroup sharing", "Windows Media Player network sharing", "Offline network files", "Application preloading / Superfetch", "Scanners or camera image-acquisition software", "Portable-device library synchronization", "Windows error reporting and diagnostic assistance", "Shortcuts that track moved files", "Optional diagnostic / experience reporting", "Windows Media Center TV and recordings", "Program compatibility help for older apps", "Automatic Windows diagnostic helpers", "Windows visual themes", "Third-party app update agents", "Local game launchers (Steam / Epic / GOG)", "Cloud-sync companion apps", "Chat companion apps", "Music companion apps" };
+        static bool[] FeatureValues(UsageProfile p) { return new[] { p.Printing, p.Bluetooth, p.IndexedSearch, p.TouchKeyboard, p.HomeGroup, p.MediaSharing, p.OfflineFiles, p.Prefetch, p.Scanning, p.PortableDevices, p.ErrorReporting, p.LinkTracking, p.Telemetry, p.MediaCenter, p.Compatibility, p.DiagnosticHelpers, p.Themes, p.AppUpdaters, p.GameLaunchers, p.CloudSync, p.ChatApps, p.MusicApps }; }
         static UsageProfile ReadChecks(CheckBox[] checks)
-        { return new UsageProfile { Printing = checks[0].Checked, Bluetooth = checks[1].Checked, IndexedSearch = checks[2].Checked, TouchKeyboard = checks[3].Checked, HomeGroup = checks[4].Checked, MediaSharing = checks[5].Checked, OfflineFiles = checks[6].Checked, Prefetch = checks[7].Checked, Scanning = checks[8].Checked, PortableDevices = checks[9].Checked, ErrorReporting = checks[10].Checked, LinkTracking = checks[11].Checked }; }
+        { return new UsageProfile { Printing = checks[0].Checked, Bluetooth = checks[1].Checked, IndexedSearch = checks[2].Checked, TouchKeyboard = checks[3].Checked, HomeGroup = checks[4].Checked, MediaSharing = checks[5].Checked, OfflineFiles = checks[6].Checked, Prefetch = checks[7].Checked, Scanning = checks[8].Checked, PortableDevices = checks[9].Checked, ErrorReporting = checks[10].Checked, LinkTracking = checks[11].Checked, Telemetry = checks[12].Checked, MediaCenter = checks[13].Checked, Compatibility = checks[14].Checked, DiagnosticHelpers = checks[15].Checked, Themes = checks[16].Checked, AppUpdaters = checks[17].Checked, GameLaunchers = checks[18].Checked, CloudSync = checks[19].Checked, ChatApps = checks[20].Checked, MusicApps = checks[21].Checked }; }
         CheckBox[] FeatureChecks(FlowLayoutPanel host, UsageProfile initial)
         {
             var values = FeatureValues(initial); var checks = new CheckBox[FeatureLabels.Length];
