@@ -21,7 +21,7 @@ namespace Lean81
         }
         void RunningAppsPage()
         {
-            Heading("Free resources now.", "Close selected launcher, sync, chat or music companions. Browsers, Windows, drivers and foreground app families are kept.");
+            Heading("Running apps", "Close selected launcher, sync, chat or music companions. Browsers, Windows, drivers and foreground app families are kept.");
             var body = new Panel(); Body(body);
             var grid = Grid(); grid.Columns.Add(new DataGridViewCheckBoxColumn { Width = 36, AutoSizeMode = DataGridViewAutoSizeColumnMode.None });
             grid.Columns.Add("Name", "Recognized app / PID"); grid.Columns.Add("Memory", "RAM MiB"); grid.Columns.Add("State", "Current state");

@@ -28,33 +28,28 @@ namespace Lean81
         }
         void Overview()
         {
-            Heading("Make room for what you use.", "Deep tune stops unused service groups and trims known background launches. Close selected companion apps inside Lean81.");
+            Heading("Dashboard", "Your laptop at a glance. Readings refresh on scan or capture; Lean81 does not keep a monitor running.");
             var body = new Panel(); Body(body);
-            var cards = new TableLayoutPanel { ColumnCount = 3, RowCount = 1 };
+            var cards = new TableLayoutPanel { ColumnCount = 3, RowCount = 1, Margin = Padding.Empty };
             for (int i = 0; i < 3; i++) cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.333f));
-            string[] labels = { "STARTUP TO REVIEW", "UNUSED SERVICES", "SAVED CAPTURES" };
-            int[] counts = { report == null ? 0 : report.Items.Count(x => x.Kind == "startup" && x.CanChange), report == null ? 0 : report.Items.Count(x => x.Kind == "service" && x.CanChange), workspace.History.Count };
-            for (int i = 0; i < 3; i++)
-            {
-                var panel = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(0, 0, i < 2 ? 12 : 0, 0), Padding = new Padding(14, 10, 8, 8) };
-                var caption = LabelAt(labels[i], 8.5f); caption.Height = 24;
-                var number = LabelAt(report == null && i < 2 ? "—" : counts[i].ToString(CultureInfo.InvariantCulture), 28, FontStyle.Bold); number.Height = 53;
-                panel.Controls.Add(number); panel.Controls.Add(caption); cards.Controls.Add(panel, i, 0);
-            }
-            var guide = new Panel { BackColor = Color.White, Padding = new Padding(16, 10, 12, 8) };
-            var text = LabelAt("1   Deep tune: choose what stays, review and apply\n2   Running apps: close selected background companions now\n3   Recovery: restore a complete tune when you need a feature back", 11); text.Dock = DockStyle.Fill; guide.Controls.Add(text);
+            var observed = lastSession != null && lastSession.After != null ? lastSession.After : capture;
+            var cpu = ResourceAnalysis.Average(observed, "cpu_pct", 100); var drive = device == null ? null : device.Disks.OrderBy(d => d.Drive, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+            var cpuCard = new MetricCard { Caption = "CPU / LAST OBSERVATION", Value = cpu.HasValue ? cpu.Value.ToString("0.0", CultureInfo.InvariantCulture) + "%" : "On demand", Detail = cpu.HasValue ? (observed.Synthetic ? "Synthetic sample average" : "Average across the last observation") : "Check with a tune or resource capture", Glyph = 6, Ratio = cpu.HasValue ? cpu / 100 : null };
+            var ramCard = new MetricCard { Caption = "AVAILABLE RAM", Value = device == null ? "—" : DeviceSnapshot.Size(device.AvailableMemory), Detail = device == null ? "Scan to read physical memory" : DeviceSnapshot.Size(device.TotalMemory) + " installed / scan snapshot", Glyph = 4, Ratio = device == null || device.TotalMemory == 0 ? null : (double?)(1.0 * device.AvailableMemory / device.TotalMemory) };
+            var diskCard = new MetricCard { Caption = "FREE STORAGE", Value = drive == null ? "—" : DeviceSnapshot.Size((ulong)drive.FreeBytes), Detail = drive == null ? "Scan to read fixed-drive capacity" : drive.Drive + " / capacity snapshot", Glyph = 8, Ratio = drive == null || drive.TotalBytes <= 0 ? null : (double?)(1.0 * drive.FreeBytes / drive.TotalBytes) };
+            var metrics = new[] { cpuCard, ramCard, diskCard }; for (int i = 0; i < metrics.Length; i++) { metrics[i].Dock = DockStyle.Fill; metrics[i].Margin = new Padding(0, 0, i < 2 ? 12 : 0, 0); cards.Controls.Add(metrics[i], i, 0); }
+            var paths = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Margin = new Padding(0, 12, 0, 0) }; paths.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50)); paths.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+            var tune = new PresetControl { Text = "Reduce background load", Caption = "Choose features, startup items and apps", Dock = DockStyle.Fill, Margin = new Padding(0, 0, 12, 0), Selected = true }; tune.Click += (s, e) => ShowPage(11); paths.Controls.Add(tune, 0, 0);
+            var running = new PresetControl { Text = "Close unused companions", Caption = "Review what is running right now", Dock = DockStyle.Fill, Margin = Padding.Empty }; running.Click += (s, e) => ShowPage(13); paths.Controls.Add(running, 1, 0);
+            var activity = new SurfacePanel { Dock = DockStyle.Fill, Margin = new Padding(0, 12, 0, 12) };
+            var caption = LabelAt("BACKGROUND / LAST SCAN", 8.5f); caption.Height = 28; caption.ForeColor = Design.Accent;
+            var detail = LabelAt(report == null ? "Scan this laptop to load its background choices." : report.Items.Count(i => i.Kind == "startup" || i.Kind == "startupfile") + " startup entries   /   " + report.Items.Count(i => i.Kind == "service" && i.Before.Enabled) + " optional services enabled   /   " + runningApps.Count + " recognized processes", 10.5f); detail.Dock = DockStyle.Fill;
+            if (report != null) detail.Text += "\r\n\r\n" + report.Notes.Count + " scan notes. Your selected settings are saved before they change.";
+            if (lastSession != null) detail.Text += "\r\n\r\nLast tune: " + lastSession.Summary();
+            activity.Controls.Add(detail); activity.Controls.Add(caption);
             var actions = new FlowLayoutPanel { WrapContents = true };
-            actions.Controls.Add(ActionButton("Deep tune", (s, e) => ShowPage(11), true));
-            actions.Controls.Add(ActionButton("Recommendations", (s, e) => ShowPage(9)));
-            actions.Controls.Add(ActionButton("Close background apps", (s, e) => ShowPage(13)));
-            var second = new FlowLayoutPanel { WrapContents = true };
-            second.Controls.Add(ActionButton("Rescan laptop", async (s, e) => await Scan()));
-            second.Controls.Add(ActionButton("Export report…", (s, e) => ExportReport()));
-            second.Controls.Add(ActionButton("Scan notes", (s, e) => ShowScanNotes()));
-            var next = LabelAt(demo ? "SYNTHETIC DEMO · try the full workflow without system changes." : backend.IsAdministrator ? "Changes enabled · every selected change still needs review. Recovery holds the original settings." : "Inspection mode · scanning and resource captures need no admin rights. Enable changes from a review when ready.", 10);
-            if (preferencesNotice != null) next.Text += "\n" + preferencesNotice;
-            next.Padding = new Padding(2, 10, 0, 0);
-            Rows(body, new Control[] { cards, guide, next, actions, second }, 102, 105, -1, 48, 48);
+            actions.Controls.Add(ActionButton("Refresh scan", async (s, e) => await Scan())); actions.Controls.Add(ActionButton("Export report…", (s, e) => ExportReport())); actions.Controls.Add(ActionButton("Scan notes", (s, e) => ShowScanNotes())); actions.Controls.Add(ActionButton("Recovery", (s, e) => ShowPage(7)));
+            Rows(body, new Control[] { cards, paths, activity, actions }, 130, 96, -1, 42);
         }
         static string[] FeatureLabels = { "Printing, including PDF / virtual printers", "Bluetooth devices", "Indexed file and email search", "Touch, pen or the on-screen keyboard", "HomeGroup sharing", "Windows Media Player network sharing", "Offline network files", "Application preloading / Superfetch", "Scanners or camera image-acquisition software", "Portable-device library synchronization", "Windows error reporting and diagnostic assistance", "Shortcuts that track moved files", "Optional diagnostic / experience reporting", "Windows Media Center TV and recordings", "Program compatibility help for older apps", "Automatic Windows diagnostic helpers", "Windows visual themes", "Third-party app update agents", "Local game launchers (Steam / Epic / GOG)", "Cloud-sync companion apps", "Chat companion apps", "Music companion apps" };
         static bool[] FeatureValues(UsageProfile p) { return new[] { p.Printing, p.Bluetooth, p.IndexedSearch, p.TouchKeyboard, p.HomeGroup, p.MediaSharing, p.OfflineFiles, p.Prefetch, p.Scanning, p.PortableDevices, p.ErrorReporting, p.LinkTracking, p.Telemetry, p.MediaCenter, p.Compatibility, p.DiagnosticHelpers, p.Themes, p.AppUpdaters, p.GameLaunchers, p.CloudSync, p.ChatApps, p.MusicApps }; }
@@ -101,7 +96,7 @@ namespace Lean81
         }
         void Profile()
         {
-            Heading("What do you use?", "Keep uncertain features checked. Presets fill your answers; changes still need an individual review.");
+            Heading("Feature choices", "Keep uncertain features checked. Presets fill your answers; changes still need an individual review.");
             var body = new Panel(); Body(body);
             var list = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, BackColor = Color.White, Padding = new Padding(16, 8, 8, 8) };
             var checks = FeatureChecks(list, profile);
@@ -114,7 +109,7 @@ namespace Lean81
         }
         void RecommendationsPage()
         {
-            Heading("Choose the next useful step.", "Recommendations explain observations and your answers. They never apply changes automatically.");
+            Heading("Next steps", "Recommendations explain observations and your answers. They never apply changes automatically.");
             var body = new Panel(); Body(body); var grid = Grid(); grid.ReadOnly = true;
             grid.Columns.Add("Title", "Next step"); grid.Columns.Add("Reason", "Why it may help"); grid.Columns[0].FillWeight = 38; grid.Columns[1].FillWeight = 62;
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
@@ -126,7 +121,7 @@ namespace Lean81
         }
         void Apps()
         {
-            Heading("Review unused desktop apps.", "Filter by name or publisher, then use the normal Windows uninstaller for software you recognize.");
+            Heading("Installed apps", "Filter by name or publisher, then use the normal Windows uninstaller for software you recognize.");
             var body = new Panel(); Body(body); var toolbar = new FlowLayoutPanel();
             var search = new TextBox { Width = 250, Margin = new Padding(0, 5, 12, 0) }; toolbar.Controls.Add(search);
             toolbar.Controls.Add(ActionButton("Programs and Features", (s, e) => OpenTool("apps"), true));
@@ -137,7 +132,7 @@ namespace Lean81
         }
         void DevicePage()
         {
-            Heading("Know the limits of this laptop.", "An on-demand hardware, memory, power and fixed-drive capacity snapshot. No files are removed.");
+            Heading("Device & storage", "An on-demand hardware, memory, power and fixed-drive capacity snapshot. No files are removed.");
             var body = new Panel(); Body(body);
             var facts = LabelAt(device == null ? "Scan this laptop to load device information." : device.Cpu + "\n" + device.Windows + " · " + device.Architecture + " · " + device.LogicalCpus + " logical processors\nPhysical memory: " + DeviceSnapshot.Size(device.TotalMemory) + " · available: " + DeviceSnapshot.Size(device.AvailableMemory) + "\nPower: " + device.Power + (device.BatteryPercent.HasValue ? " · battery " + device.BatteryPercent + "%" : "") + "\nUptime since Windows boot: " + TimeSpan.FromMilliseconds(device.UptimeMilliseconds).ToString(@"d\d\ hh\h\ mm\m", CultureInfo.InvariantCulture), 10.5f);
             facts.BackColor = Color.White; facts.Padding = new Padding(12, 9, 4, 0);
@@ -154,7 +149,7 @@ namespace Lean81
         }
         void CapturePage()
         {
-            Heading("Find what is holding you up.", "Two-second CPU, RAM and disk samples. Capture during a slowdown, then inspect the resource details.");
+            Heading("Resource capture", "Two-second CPU, RAM and disk samples. Capture during a slowdown, then inspect the resource details.");
             var tabs = new DesignTabs(); Body(tabs); var live = new TabPage("Capture") { Padding = new Padding(8) }; var saved = new TabPage("Saved results & baseline") { Padding = new Padding(8) }; var resources = new TabPage("Memory, disk & processes") { Padding = new Padding(8) }; tabs.TabPages.Add(live); tabs.TabPages.Add(saved); tabs.TabPages.Add(resources);
             var body = new Panel { Dock = DockStyle.Fill }; live.Controls.Add(body);
             var toolbar = new FlowLayoutPanel(); toolbar.Controls.Add(new Label { Text = "Workload", AutoSize = true, Padding = new Padding(0, 7, 8, 0) });
@@ -218,7 +213,7 @@ namespace Lean81
         }
         void ToolsPage()
         {
-            Heading("Help when you need it.", "Open a specific Windows tool or read how Lean81's choices, captures and recovery work.");
+            Heading("Tools & help", "Open a specific Windows tool or read how Lean81's choices, captures and recovery work.");
             var tabs = new DesignTabs(); Body(tabs); var tools = new TabPage("Windows tools") { Padding = new Padding(8) }; var help = new TabPage("How it works") { Padding = new Padding(8) }; tabs.TabPages.Add(tools); tabs.TabPages.Add(help);
             var body = new Panel { Dock = DockStyle.Fill }; tools.Controls.Add(body); var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Name", "Tool"); grid.Columns.Add("Purpose", "Purpose"); grid.Columns[0].FillWeight = 29; grid.Columns[1].FillWeight = 71; grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
             foreach (var tool in WindowsTools.All) { var row = grid.Rows[grid.Rows.Add(tool.Title, tool.Purpose)]; row.Tag = tool; }

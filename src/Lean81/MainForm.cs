@@ -60,7 +60,7 @@ namespace Lean81
         TableLayoutPanel pageLayout;
         ScanReport report; int page = 11; bool busy; CancellationTokenSource captureCancel;
         CaptureResult capture; CpuChart chart; Label captureStats;
-        static readonly string[] Pages = { "Overview", "Usage profile", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "Resource capture", "Recovery", "Device & storage", "Recommendations", "Help & tools", "Deep tune", "Desktop effects", "Running apps", "Tune result" };
+        static readonly string[] Pages = { "Dashboard", "Feature choices", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "Resource capture", "Recovery", "Device & storage", "Next steps", "Tools & help", "Deep tune", "Desktop effects", "Running apps", "Tune result" };
         public MainForm(IBackend backend, IJournalStore journals, bool demo)
         {
             this.backend = backend; this.journals = journals; this.demo = demo; runningBackend = demo ? (IRunningApps)new DemoRunningApps() : new WindowsRunningApps();
@@ -171,7 +171,7 @@ namespace Lean81
         }
         void Inventory(string kind)
         {
-            Heading(kind == "startup" ? "Start fewer things at sign-in." : kind == "task" ? "Review scheduled activity." : kind == "setting" ? "A simpler desktop." : "Keep the services you need.",
+            Heading(kind == "startup" ? "Startup apps" : kind == "task" ? "Scheduled tasks" : kind == "setting" ? "Desktop effects" : "Optional services",
                 choicesStale ? "Your usage answers changed. Rescan before selecting changes." : kind == "service" ? "Optional services only. Your usage profile and service dependencies decide which can be selected." : kind == "setting" ? "Reduce individual Explorer effects. Sign out and back in after applying; each original value can be restored." : "Select only items you recognize. Protected entries stay available for inspection.");
             var body = new Panel(); Body(body);
             var detail = new TextBox { Dock = DockStyle.Bottom, Height = 100, Multiline = true, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White, ForeColor = Muted, ScrollBars = ScrollBars.Vertical, Text = "Select a row to inspect its purpose and tradeoff." }; body.Controls.Add(detail);
@@ -258,7 +258,7 @@ namespace Lean81
         }
         void Recovery()
         {
-            Heading("Every change has a way back.", "Restore saved settings after checking that their current state still matches the receipt.");
+            Heading("Recovery", "Restore saved settings after checking that their current state still matches the receipt.");
             var body = new Panel(); Body(body);
             if (!backend.IsAdministrator)
             {
@@ -418,7 +418,7 @@ namespace Lean81
                 var children = table.Controls.Cast<Control>().Where(c => c.Visible).ToArray();
                 for (int i = 0; i < children.Length; i++)
                 {
-                    if (!table.ClientRectangle.Contains(children[i].Bounds)) throw new InvalidOperationException("A table control is outside its visible area.");
+                    if (!table.ClientRectangle.Contains(children[i].Bounds)) throw new InvalidOperationException("A table control is outside its visible area: " + table.Name + " / " + children[i].GetType().Name + " " + children[i].Bounds + " within " + table.ClientRectangle);
                     for (int j = i + 1; j < children.Length; j++)
                         if (children[i].Bounds.IntersectsWith(children[j].Bounds)) throw new InvalidOperationException("Required controls overlap.");
                 }

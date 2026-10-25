@@ -99,7 +99,7 @@ namespace Lean81
         }
         void SessionResultPage()
         {
-            Heading("See what changed.", "Settings and app results, with short CPU / RAM / disk observations. No export or other app is required.");
+            Heading("Tune result", "Settings and app results, with short CPU / RAM / disk observations. No export or other app is required.");
             var body = new Panel(); Body(body);
             var summary = new Label { Text = lastSession == null ? "Apply a reviewed deep tune to see its result here." : lastSession.Summary() + (lastSession.Restored ? " · settings restored" : ""), ForeColor = Ink };
             var grid = Grid(); grid.ReadOnly = true;

@@ -105,13 +105,13 @@ namespace Lean81
     }
     public sealed class BrandControl : Control
     {
-        public BrandControl() { DoubleBuffered = true; Height = 112; }
+        public BrandControl() { DoubleBuffered = true; Height = 112; TabStop = false; }
         protected override void OnPaint(PaintEventArgs e)
         {
             e.Graphics.Clear(Design.Sidebar); Design.Glyph(e.Graphics, -1, new Rectangle(21, 24, 28, 28), Design.Accent);
             using (var font = new Font("Segoe UI", 22, FontStyle.Bold)) TextRenderer.DrawText(e.Graphics, "Lean81", font, new Point(56, 17), Design.Text);
             TextRenderer.DrawText(e.Graphics, "PERFORMANCE TOOLKIT", Design.Small, new Point(23, 63), Design.Muted);
-            TextRenderer.DrawText(e.Graphics, "1.2  /  PREVIEW", Design.Small, new Point(23, 85), Design.Accent);
+            TextRenderer.DrawText(e.Graphics, Product.Version.Replace("-rc.", " RC"), Design.Small, new Point(23, 85), Design.Accent);
         }
     }
     public sealed class SurfacePanel : Panel
@@ -185,5 +185,23 @@ namespace Lean81
     public sealed class StyledDialog : Form
     {
         protected override void OnLoad(EventArgs e) { Design.Apply(this); base.OnLoad(e); }
+    }
+    public sealed class MetricCard : Control
+    {
+        public string Caption, Value, Detail; public double? Ratio; public int Glyph;
+        public MetricCard() { DoubleBuffered = true; BackColor = Design.Surface; TabStop = false; }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            e.Graphics.Clear(Design.Canvas); Design.Box(e.Graphics, ClientRectangle, Design.Surface, Design.Border);
+            Design.Glyph(e.Graphics, Glyph, new Rectangle(Width - 35, 16, 17, 17), Design.Muted);
+            TextRenderer.DrawText(e.Graphics, Caption ?? "", Design.Small, new Rectangle(16, 15, Width - 54, 21), Design.Muted, TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(e.Graphics, Value ?? "—", Design.Number, new Rectangle(12, 35, Width - 26, 51), Design.Text, TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(e.Graphics, Detail ?? "", Design.Small, new Rectangle(16, 89, Width - 32, 20), Design.Muted, TextFormatFlags.EndEllipsis);
+            if (Ratio.HasValue && Product.Finite(Ratio.Value) && Ratio >= 0 && Ratio <= 1)
+            {
+                using (var b = new SolidBrush(Design.Raised)) e.Graphics.FillRectangle(b, 16, Height - 14, Width - 32, 3);
+                using (var b = new SolidBrush(Design.Accent)) e.Graphics.FillRectangle(b, 16, Height - 14, (float)((Width - 32) * Ratio.Value), 3);
+            }
+        }
     }
 }

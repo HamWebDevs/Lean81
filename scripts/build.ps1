@@ -24,7 +24,7 @@ $compiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework/v4.0.30319/csc.exe'
 if (!(Test-Path $compiler)) { throw 'The .NET Framework C# compiler was not found.' }
 $source = @(Get-ChildItem 'src/Lean81/*.cs' | ForEach-Object { $_.FullName })
 $common = @('/nologo', '/noconfig', '/nostdlib+', '/langversion:5', '/optimize+', '/warn:4', '/warnaserror+', '/platform:anycpu')
-foreach ($assembly in @('mscorlib', 'System', 'System.Core', 'System.Drawing', 'System.Windows.Forms', 'System.ServiceProcess', 'System.Web.Extensions', 'System.Xml', 'Microsoft.CSharp')) {
+foreach ($assembly in @('mscorlib', 'System', 'System.Core', 'System.Drawing', 'System.Windows.Forms', 'System.ServiceProcess', 'System.Web.Extensions', 'System.Xml', 'Microsoft.CSharp', 'Accessibility')) {
     $common += '/reference:' + (Join-Path $references ($assembly + '.dll'))
 }
 # The icon is generated from vector geometry; no external asset or build tool is required.
