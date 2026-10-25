@@ -30,7 +30,7 @@ namespace Lean81
                 grid.CurrentCellDirtyStateChanged += (s, e) => { if (grid.IsCurrentCellDirty) grid.CommitEdit(DataGridViewDataErrorContexts.Commit); };
                 var appNote = new Label { Text = request.Apps.Count == 0 ? "No recognized background companions match the unused categories. Browsers, Windows and foreground families are kept." : "Uncheck any app you need. Closing can interrupt sync, downloads, calls, music or unsaved app state. RAM working sets can include shared pages." };
                 var appActions = new FlowLayoutPanel();
-                appActions.Controls.Add(ActionButton("Keep all apps", (s, e) => { grid.EndEdit(); foreach (DataGridViewRow row in grid.Rows) row.Cells[0].Value = false; }));
+                var keepAll = ActionButton("Keep all apps", (s, e) => { grid.EndEdit(); foreach (DataGridViewRow row in grid.Rows) row.Cells[0].Value = false; }); appActions.Controls.Add(keepAll);
                 var force = new CheckBox { Text = "Force close selected apps if normal close fails (includes tray / helpers)", AutoSize = true, Margin = new Padding(0, 9, 0, 0) };
                 Rows(appsBody, new Control[] { appNote, grid, appActions }, 52, -1, 45);
                 var options = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false };
@@ -57,7 +57,17 @@ namespace Lean81
                     if (screenshot != null)
                     {
                         tabs.SelectedTab = appsTab;
-                        timer.Tick += (s, e) => { timer.Stop(); if (force.Checked || !readings.Checked) throw new InvalidOperationException("Review defaults changed."); using (var image = new Bitmap(dialog.Width, dialog.Height)) { dialog.DrawToBitmap(image, new Rectangle(Point.Empty, dialog.Size)); image.Save(screenshot, System.Drawing.Imaging.ImageFormat.Png); } dialog.DialogResult = DialogResult.Cancel; };
+                        timer.Tick += (s, e) =>
+                        {
+                            timer.Stop(); if (force.Checked || !readings.Checked) throw new InvalidOperationException("Review defaults changed.");
+                            using (var image = new Bitmap(dialog.Width, dialog.Height)) { dialog.DrawToBitmap(image, new Rectangle(Point.Empty, dialog.Size)); image.Save(screenshot, System.Drawing.Imaging.ImageFormat.Png); }
+                            if (grid.Rows.Count != 0)
+                            {
+                                force.Checked = true; keepAll.PerformClick();
+                                if (force.Checked || force.Enabled || grid.Rows.Cast<DataGridViewRow>().Any(r => Convert.ToBoolean(r.Cells[0].Value))) throw new InvalidOperationException("Keeping every app left a force-close selection enabled.");
+                            }
+                            dialog.DialogResult = DialogResult.Cancel;
+                        };
                         dialog.Shown += (s, e) => timer.Start();
                     }
                     return dialog.ShowDialog(this) == DialogResult.OK;
@@ -99,7 +109,7 @@ namespace Lean81
             var tabs = new TabControl(); var observations = new TabPage("Observations"); var remaining = new TabPage("Remaining load"); tabs.TabPages.Add(observations); tabs.TabPages.Add(remaining); observations.Controls.Add(grid);
             var remainingBody = new Panel { Dock = DockStyle.Fill }; remaining.Controls.Add(remainingBody);
             var processGrid = Grid(); processGrid.ReadOnly = true;
-            foreach (string name in new[] { "Process / PID", "Peak CPU", "RAM MiB", "I/O MiB/s" }) processGrid.Columns.Add(name, name);
+            foreach (string name in new[] { "Process / PID", "Peak CPU", "Peak RAM MiB", "Peak I/O MiB/s" }) processGrid.Columns.Add(name, name);
             processGrid.Columns[0].FillWeight = 42; processGrid.Columns[1].FillWeight = 18; processGrid.Columns[2].FillWeight = processGrid.Columns[3].FillWeight = 20;
             var tools = new FlowLayoutPanel(); tools.Controls.Add(new Label { Text = "After-check leaders · sort", AutoSize = true, Padding = new Padding(0, 7, 8, 0) });
             var sort = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 145, Margin = new Padding(0, 4, 8, 0) }; sort.Items.AddRange(new object[] { "CPU", "Working-set RAM", "Read/write I/O" }); sort.SelectedIndex = 0; tools.Controls.Add(sort);

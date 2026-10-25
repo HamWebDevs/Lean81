@@ -121,6 +121,11 @@ namespace Lean81
             }
             catch (OperationCanceledException) { result.Status = actionsStarted ? "Stopped after partial work" : "Stopped before changes"; result.Notes.Add("Remaining work was cancelled. Completed settings remain saved in Recovery; closed apps stay closed."); }
             catch (Exception ex) { result.Status = "Needs review"; result.Error = Product.Clean(ex.Message, 500); result.Notes.Add("Remaining actions were skipped. Inspect Recovery for earlier settings before retrying."); }
+            finally
+            {
+                foreach (var app in request.Apps.Where(a => !result.Apps.Any(r => r.Pid == a.Pid)))
+                    result.Apps.Add(new AppCloseResult { Pid = app.Pid, Name = app.Name, Status = "Skipped: tune stopped before this app's closure" });
+            }
             return result;
         }
     }

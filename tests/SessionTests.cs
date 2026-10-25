@@ -34,7 +34,7 @@ static partial class Tests
         Test("a failed settings pass keeps every selected app running", () => {
             var s = Service(); var b = new Fake(s) { DisableFails = true }; var a = Companion(); var apps = new SessionApps(); apps.Current.Add(a); var j = new MemoryJournals();
             var result = new TuneSessionEngine(b, j, apps, t => null, t => { }).Run(SessionRequest(Item(s), a), CancellationToken.None, null);
-            Assert(result.Status == "Needs review" && apps.Writes == 0 && j.List().Single().Status == "Needs review");
+            Assert(result.Status == "Needs review" && apps.Writes == 0 && j.List().Single().Status == "Needs review" && result.Apps.Single().Status.StartsWith("Skipped:", StringComparison.Ordinal));
         });
         Test("stale settings do not cause unrelated app closure", () => {
             var s = Service(); var b = new Fake(s); var a = Companion(); var apps = new SessionApps(); apps.Current.Add(a); var request = SessionRequest(Item(s), a); b.States[s.Identity()].Definition = Product.Hash("independent");
