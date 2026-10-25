@@ -19,7 +19,7 @@ Windows 8.1 is no longer supported by Microsoft. Lean81 does not make the operat
 - Scheduled tasks are bounded to 512 inventory items in total and 12 folder levels. Hidden tasks are included where accessible; Microsoft/system, recognized security and hardware tasks are inspection-only. The task's author, path and XML content inform conservative protection heuristics; these are not a software trust/signature verifier.
 - Optional services are a fixed allowlist. A service with a non-disabled dependent is kept. Some devices have OEM dependencies not visible to Windows service dependency checks; review each tradeoff and test features after a change.
 - App inventory reads traditional uninstall registry entries. Store apps and per-app background permissions are outside this release's scope. Use Programs and Features to uninstall apps yourself.
-- CPU capture observes two-second intervals, normalizes process CPU across all logical processors, and reports up to five accessible busy processes per sample. Inaccessible, newly started or short-lived processes may be missed. Observing CPU uses a small amount of CPU itself; the trace records observer CPU time. No wake-delay probe is present.
+- CPU capture observes two-second intervals, normalizes process CPU across all logical processors, and reports up to 20 accessible CPU, working-set, private-memory and I/O leaders per sample. Inaccessible, newly started or short-lived processes may be missed. Observing CPU uses a small amount of CPU itself; the trace records observer CPU time. No wake-delay probe is present.
 - No improvement percentage is promised. A background item can be idle, and disabling prefetch may slow launches. Compare the same workload with the same power state.
 - The executable is unsigned. There is no installer, auto-update component, telemetry, scheduled Lean81 job or resident service.
 
@@ -38,3 +38,24 @@ Fixed-drive capacity is read through DriveInfo; it is not a SMART, SSD, temperat
 CSV exports quote strings and neutralize formula-leading process names. HTML reports encode dynamic content, load no remote resources and omit raw command/path/task/receipt fields. Software names are optional; workload labels are excluded from support reports.
 
 Reference APIs: https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-gettickcount64 and https://learn.microsoft.com/en-us/dotnet/api/system.io.driveinfo.availablefreespace?view=netframework-4.5.1
+
+## Version 1.0 resource and tuning details
+
+Quick tune stages reviewed service choices and, only with a separate opt-in, three fixed desktop DWORDs. New optional-feature answers default to kept when missing from an older profile. Schema-1 receipts and aggregate history remain supported. Desktop effects use existing HKCU Explorer\Advanced or Windows\DWM keys only and save original absence/value; sign out and back in to refresh Explorer. Native test fixtures inspect these values without changing them; exact writes/recovery use in-memory tests.
+
+Disk counters use one short-lived PDH query with language-neutral paths for PhysicalDisk(_Total) idle time, throughput, average queue, and Memory page-ins. Busy time is 100 minus valid idle time. Missing/invalid counters remain unknown and do not fail CPU capture. Aggregate disk activity can hide a single busy drive and does not attribute activity to a process.
+
+GetPerformanceInfo provides commit usage, kernel pools and cache. GlobalMemoryStatusEx provides available physical memory. Kernel CPU is kernel time excluding idle, normalized across all logical processors; it is not CPU attributed exclusively to the System process. GetProcessIoCounters read/write transfer deltas include file, network and device operations. They are not per-process disk utilization. Process handles request query-limited-information access; inaccessible processes are skipped. Memory-heavy zero-CPU leaders are retained and PID/start-time pairs prevent reuse from merging observations.
+
+Disk comparisons require valid disk readings in every sample of both otherwise-compatible captures. Legacy summaries have unknown resource values. Findings use simple review thresholds; they do not diagnose driver leaks, failing disks or guaranteed improvements. Cached memory is reusable, working sets can share pages and page-ins may read mapped files.
+
+API references:
+
+- https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhaddenglishcounterw
+- https://learn.microsoft.com/en-us/windows/win32/api/pdh/nf-pdh-pdhgetformattedcountervalue
+- https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-performance_information
+- https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getprocessiocounters
+
+Desktop Peek location reference: https://learn.microsoft.com/en-us/answers/questions/1282989/prevent-window-from-disapearing-when-hovering-anot
+
+The native CI suite additionally compiles an x86 resource probe and checks pointer-sized memory structures, process I/O and bounded capture in a 32-bit process. This runs on modern Windows and is not a Windows 8.1 hardware test.

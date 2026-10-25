@@ -24,6 +24,11 @@ namespace Lean81
         public double BusySeconds { get; set; }
         public double ObserverCpu { get; set; }
         public double? AverageAvailableMemory { get; set; }
+        public double? AverageDiskBusy { get; set; }
+        public double? PeakCommit { get; set; }
+        public double? PeakNonpagedBytes { get; set; }
+        public int ValidDiskSamples { get; set; }
+        public int ValidCommitSamples { get; set; }
         public static CaptureSummary From(CaptureResult result, string workload, string machineKey)
         {
             if (result == null || result.Samples == null || result.Samples.Count == 0) throw new InvalidOperationException("No capture samples are available.");
@@ -45,6 +50,10 @@ namespace Lean81
             }
             if (summary.ObservedSeconds <= 0) throw new InvalidOperationException("No valid CPU samples were collected.");
             summary.AverageCpu = Math.Min(summary.PeakCpu, weighted / summary.ObservedSeconds); summary.AverageAvailableMemory = memorySeconds > 0 ? (double?)(memory / memorySeconds) : null;
+            summary.AverageDiskBusy = ResourceAnalysis.Average(result, "disk_busy_pct", 100); summary.PeakCommit = ResourceAnalysis.Peak(result, "commit_pct", 100);
+            summary.PeakNonpagedBytes = ResourceAnalysis.Peak(result, "kernel_nonpaged_bytes");
+            summary.ValidDiskSamples = result.Samples.Count(s => ResourceAnalysis.Number(s.metrics, "disk_busy_pct", 100).HasValue);
+            summary.ValidCommitSamples = result.Samples.Count(s => ResourceAnalysis.Number(s.metrics, "commit_pct", 100).HasValue);
             summary.Power = powers.Count == 1 ? powers.Single() : "mixed"; if (summary.Workload.Length == 0) summary.Workload = "Normal laptop use";
             Validate(summary); return summary;
         }
@@ -62,14 +71,18 @@ namespace Lean81
                 || String.IsNullOrWhiteSpace(value.Workload) || value.Workload.Length > 80 || value.Workload.Any(Char.IsControl) || !Hash(value.MachineKey) || !Hash(value.HardwareKey)
                 || !new[] { "ac", "battery", "mixed", "unknown" }.Contains(value.Power) || value.Samples < 1 || value.Samples > 1000 || value.ValidCpuSamples < 1 || value.ValidCpuSamples > value.Samples
                 || !Range(value.Duration, 0.01, 3600) || !Range(value.ObservedSeconds, 0.01, value.Duration + 1) || !Range(value.AverageCpu, 0, 100) || !Range(value.PeakCpu, value.AverageCpu, 100)
-                || !Range(value.BusySeconds, 0, value.ObservedSeconds) || !Range(value.ObserverCpu, 0, 3600 * 65536) || value.AverageAvailableMemory.HasValue && !Range(value.AverageAvailableMemory.Value, 0, 100))
+                || !Range(value.BusySeconds, 0, value.ObservedSeconds) || !Range(value.ObserverCpu, 0, 3600 * 65536) || value.AverageAvailableMemory.HasValue && !Range(value.AverageAvailableMemory.Value, 0, 100)
+                || value.ValidDiskSamples < 0 || value.ValidDiskSamples > value.Samples || value.ValidCommitSamples < 0 || value.ValidCommitSamples > value.Samples
+                || value.AverageDiskBusy.HasValue != (value.ValidDiskSamples > 0) || value.PeakCommit.HasValue != (value.ValidCommitSamples > 0)
+                || value.AverageDiskBusy.HasValue && !Range(value.AverageDiskBusy.Value, 0, 100) || value.PeakCommit.HasValue && !Range(value.PeakCommit.Value, 0, 100)
+                || value.PeakNonpagedBytes.HasValue && !Range(value.PeakNonpagedBytes.Value, 0, 281474976710656))
                 throw new InvalidOperationException("Invalid saved capture summary.");
         }
     }
     public sealed class CaptureComparison
     {
         public bool Comparable; public string Explanation;
-        public double CpuDifference, PeakDifference, BusyDifference; public double? MemoryDifference;
+        public double CpuDifference, PeakDifference, BusyDifference; public double? MemoryDifference, DiskDifference;
         public static CaptureComparison Compare(CaptureSummary baseline, CaptureSummary current)
         {
             CaptureSummary.Validate(baseline); CaptureSummary.Validate(current);
@@ -86,12 +99,13 @@ namespace Lean81
             return new CaptureComparison { Comparable = true, CpuDifference = current.AverageCpu - baseline.AverageCpu, PeakDifference = current.PeakCpu - baseline.PeakCpu,
                 BusyDifference = current.BusySeconds - baseline.BusySeconds,
                 MemoryDifference = current.AverageAvailableMemory.HasValue && baseline.AverageAvailableMemory.HasValue ? current.AverageAvailableMemory - baseline.AverageAvailableMemory : null,
+                DiskDifference = current.ValidDiskSamples == current.Samples && baseline.ValidDiskSamples == baseline.Samples && current.AverageDiskBusy.HasValue && baseline.AverageDiskBusy.HasValue ? current.AverageDiskBusy - baseline.AverageDiskBusy : null,
                 Explanation = "Matching recorded conditions. This comparison describes observations; it does not prove a change caused an improvement. Repeat the same activity and let background startup settle." };
         }
         public string Text()
         {
             if (!Comparable) return "Comparison needs matching conditions\r\n\r\n" + Explanation;
-            return "Current result minus baseline\r\n\r\nAverage CPU: " + Signed(CpuDifference) + " percentage points\r\nPeak CPU: " + Signed(PeakDifference) + " percentage points\r\nTime at 80%+ CPU: " + Signed(BusyDifference) + " seconds\r\nAvailable memory: " + (MemoryDifference.HasValue ? Signed(MemoryDifference.Value) + " percentage points" : "unavailable") + "\r\n\r\n" + Explanation;
+            return "Current result minus baseline\r\n\r\nAverage CPU: " + Signed(CpuDifference) + " percentage points\r\nPeak CPU: " + Signed(PeakDifference) + " percentage points\r\nTime at 80%+ CPU: " + Signed(BusyDifference) + " seconds\r\nAvailable memory: " + (MemoryDifference.HasValue ? Signed(MemoryDifference.Value) + " percentage points" : "unavailable") + "\r\nAggregate disk busy: " + (DiskDifference.HasValue ? Signed(DiskDifference.Value) + " percentage points" : "unavailable or incomplete disk coverage") + "\r\n\r\n" + Explanation;
         }
         static string Signed(double value) { return value.ToString("+0.0;-0.0;0.0", CultureInfo.InvariantCulture); }
     }

@@ -14,7 +14,8 @@ namespace Lean81
 {
     public sealed class CpuChart : Panel
     {
-        public readonly List<double> Values = new List<double>();
+        public readonly List<double?> Values = new List<double?>();
+        public readonly List<double?> MemoryValues = new List<double?>(), DiskValues = new List<double?>();
         public CpuChart() { DoubleBuffered = true; BackColor = Color.White; }
         protected override void OnPaint(PaintEventArgs e)
         {
@@ -28,10 +29,22 @@ namespace Lean81
                     g.DrawString((100 - n * 25).ToString(CultureInfo.InvariantCulture), Font, text, 6, y - 7);
                 }
             if (Values.Count < 2) return;
-            var points = Values.Select((v, i) => new PointF(plot.Left + i * plot.Width / (float)Math.Max(14, Values.Count - 1), plot.Bottom - (float)Math.Max(0, Math.Min(100, v)) / 100 * plot.Height)).ToArray();
-            var area = new List<PointF> { new PointF(points[0].X, plot.Bottom) }; area.AddRange(points); area.Add(new PointF(points[points.Length - 1].X, plot.Bottom));
-            using (var fill = new SolidBrush(Color.FromArgb(30, 15, 145, 125))) g.FillPolygon(fill, area.ToArray());
-            using (var line = new Pen(Color.FromArgb(13, 137, 119), 2.5f)) g.DrawLines(line, points);
+            if (Values.All(v => v.HasValue))
+            {
+                var points = Values.Select((v, i) => new PointF(plot.Left + i * plot.Width / (float)Math.Max(14, Values.Count - 1), plot.Bottom - (float)v.Value / 100 * plot.Height)).ToArray();
+                var area = new List<PointF> { new PointF(points[0].X, plot.Bottom) }; area.AddRange(points); area.Add(new PointF(points[points.Length - 1].X, plot.Bottom));
+                using (var fill = new SolidBrush(Color.FromArgb(30, 15, 145, 125))) g.FillPolygon(fill, area.ToArray());
+            }
+            Series(g, plot, Values, Color.FromArgb(13, 137, 119));
+            Series(g, plot, MemoryValues, Color.FromArgb(51, 111, 194)); Series(g, plot, DiskValues, Color.FromArgb(193, 122, 24));
+        }
+        static void Series(Graphics g, Rectangle plot, IList<double?> values, Color color)
+        {
+            using (var line = new Pen(color, 1.6f))
+                for (int i = 1; i < values.Count; i++)
+                    if (values[i - 1].HasValue && values[i].HasValue)
+                        g.DrawLine(line, plot.Left + (i - 1) * plot.Width / (float)Math.Max(14, values.Count - 1), plot.Bottom - (float)values[i - 1].Value / 100 * plot.Height,
+                            plot.Left + i * plot.Width / (float)Math.Max(14, values.Count - 1), plot.Bottom - (float)values[i].Value / 100 * plot.Height);
         }
     }
     public sealed partial class MainForm : Form
@@ -46,7 +59,7 @@ namespace Lean81
         TableLayoutPanel pageLayout;
         ScanReport report; int page; bool busy; CancellationTokenSource captureCancel;
         CaptureResult capture; CpuChart chart; Label captureStats;
-        static readonly string[] Pages = { "Overview", "Usage profile", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "CPU capture", "Recovery", "Device & storage", "Recommendations", "Help & tools" };
+        static readonly string[] Pages = { "Overview", "Usage profile", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "Resource capture", "Recovery", "Device & storage", "Recommendations", "Help & tools", "Quick tune", "Desktop effects" };
         public MainForm(IBackend backend, IJournalStore journals, bool demo)
         {
             this.backend = backend; this.journals = journals; this.demo = demo;
@@ -63,14 +76,17 @@ namespace Lean81
             status.Text = demo ? "Demo workspace · no system changes" : "Ready · scan to inspect this laptop"; status.Dock = DockStyle.Fill; status.AutoEllipsis = true; status.TextAlign = ContentAlignment.MiddleLeft; status.ForeColor = Muted; footer.Controls.Add(status, 0, 0);
             content.Dock = DockStyle.Fill; content.Padding = new Padding(28, 22, 28, 18); content.AutoScroll = true;
             sidebar.Dock = DockStyle.Left; sidebar.Width = 196; sidebar.BackColor = Ink;
-            var brand = new Label { Text = "Lean81", Font = new Font("Segoe UI", 25, FontStyle.Bold), ForeColor = Color.White, Bounds = new Rectangle(21, 21, 166, 49) }; sidebar.Controls.Add(brand);
-            sidebar.Controls.Add(new Label { Text = "A lighter working day.", ForeColor = Color.FromArgb(175, 194, 207), Bounds = new Rectangle(24, 75, 170, 26) });
+            var branding = new Panel { Dock = DockStyle.Top, Height = 115 };
+            var brand = new Label { Text = "Lean81", Font = new Font("Segoe UI", 25, FontStyle.Bold), ForeColor = Color.White, Bounds = new Rectangle(21, 21, 166, 49) }; branding.Controls.Add(brand);
+            branding.Controls.Add(new Label { Text = "A lighter working day.", ForeColor = Color.FromArgb(175, 194, 207), Bounds = new Rectangle(24, 75, 170, 26) });
+            var navPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true }; sidebar.Controls.Add(navPanel);
             for (int i = 0; i < Pages.Length; i++)
             {
-                int target = i; var button = new Button { Text = Pages[i], UseMnemonic = false, Bounds = new Rectangle(12, 123 + i * 37, 172, 34), TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(12, 0, 0, 0), FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(202, 215, 224), BackColor = Ink, TabIndex = i };
-                button.FlatAppearance.BorderSize = 0; button.Click += (s, e) => ShowPage(target); navigation.Add(button); sidebar.Controls.Add(button);
+                int target = i; var button = new Button { Text = Pages[i], UseMnemonic = false, Bounds = new Rectangle(8, i * 37, 160, 34), TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(10, 0, 0, 0), FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(202, 215, 224), BackColor = Ink, TabIndex = i };
+                button.FlatAppearance.BorderSize = 0; button.Click += (s, e) => ShowPage(target); navigation.Add(button); navPanel.Controls.Add(button);
             }
             var mode = new Label { Text = demo ? "SYNTHETIC DEMO\nNo system writes" : backend.IsAdministrator ? "ADMINISTRATOR\nChanges enabled" : "INSPECTION MODE\nNo admin needed to scan", ForeColor = Color.FromArgb(162, 184, 198), AutoSize = false, Height = 55, Dock = DockStyle.Bottom, Padding = new Padding(24, 4, 8, 6) }; sidebar.Controls.Add(mode);
+            sidebar.Controls.Add(branding);
             var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = Padding.Empty, Padding = Padding.Empty };
             shell.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 196)); shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
@@ -118,7 +134,7 @@ namespace Lean81
             pageLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Margin = Padding.Empty };
             pageLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); content.Controls.Add(pageLayout);
             for (int i = 0; i < navigation.Count; i++) { navigation[i].BackColor = i == page ? Color.FromArgb(44, 68, 85) : Ink; navigation[i].ForeColor = i == page ? Color.White : Color.FromArgb(202, 215, 224); }
-            if (index == 0) Overview(); else if (index == 1) Profile(); else if (index >= 2 && index <= 4) Inventory(index == 2 ? "startup" : index == 3 ? "task" : "service"); else if (index == 5) Apps(); else if (index == 6) CapturePage(); else if (index == 7) Recovery(); else if (index == 8) DevicePage(); else if (index == 9) RecommendationsPage(); else ToolsPage();
+            if (index == 0) Overview(); else if (index == 1) Profile(); else if (index >= 2 && index <= 4) Inventory(index == 2 ? "startup" : index == 3 ? "task" : "service"); else if (index == 5) Apps(); else if (index == 6) CapturePage(); else if (index == 7) Recovery(); else if (index == 8) DevicePage(); else if (index == 9) RecommendationsPage(); else if (index == 10) ToolsPage(); else if (index == 11) QuickTunePage(); else Inventory("setting");
             UpdateSelection();
         }
         void SetBusy(bool value, string message)
@@ -128,12 +144,12 @@ namespace Lean81
             review.Enabled = !value && !choicesStale && selected.Count > 0; status.Text = message + (!value && preferencesNotice != null ? " · preferences unavailable" : "");
             if (!value && closeWhenIdle && IsHandleCreated) BeginInvoke(new Action(Close));
         }
-        async Task Scan()
+        async Task<bool> Scan()
         {
-            if (busy) return; SetBusy(true, "Scanning startup entries, optional services, tasks and installed apps…");
-            try { report = await Task.Run(() => backend.Scan(profile)); device = await Task.Run(() => demo ? DeviceSnapshot.Demo() : DeviceSnapshot.Read()); choicesStale = false; selected.Clear(); ShowPage(page); SetBusy(false, "Scan complete · " + report.Items.Count + " items · " + report.Notes.Count + " notes" + (preferences != null && preferences.Warning != null ? " · preferences reset" : "")); }
+            if (busy) return false; bool complete = false; SetBusy(true, "Scanning startup entries, optional services, tasks and installed apps…");
+            try { report = await Task.Run(() => backend.Scan(profile)); device = await Task.Run(() => demo ? DeviceSnapshot.Demo() : DeviceSnapshot.Read()); choicesStale = false; selected.Clear(); ShowPage(page); SetBusy(false, "Scan complete · " + report.Items.Count + " items · " + report.Notes.Count + " notes" + (preferences != null && preferences.Warning != null ? " · preferences reset" : "")); complete = true; }
             catch (Exception ex) { SetBusy(false, "Scan could not finish"); Error(ex); }
-            UpdateSelection();
+            UpdateSelection(); return complete;
         }
         static DataGridView Grid()
         {
@@ -146,8 +162,8 @@ namespace Lean81
         }
         void Inventory(string kind)
         {
-            Heading(kind == "startup" ? "Start fewer things at sign-in." : kind == "task" ? "Review scheduled activity." : "Keep the services you need.",
-                choicesStale ? "Your usage answers changed. Rescan before selecting changes." : kind == "service" ? "Optional services only. Your usage profile and service dependencies decide which can be selected." : "Select only items you recognize. Protected entries stay available for inspection.");
+            Heading(kind == "startup" ? "Start fewer things at sign-in." : kind == "task" ? "Review scheduled activity." : kind == "setting" ? "A simpler desktop." : "Keep the services you need.",
+                choicesStale ? "Your usage answers changed. Rescan before selecting changes." : kind == "service" ? "Optional services only. Your usage profile and service dependencies decide which can be selected." : kind == "setting" ? "Reduce individual Explorer effects. Sign out and back in after applying; each original value can be restored." : "Select only items you recognize. Protected entries stay available for inspection.");
             var body = new Panel(); Body(body);
             var detail = new TextBox { Dock = DockStyle.Bottom, Height = 100, Multiline = true, ReadOnly = true, BorderStyle = BorderStyle.FixedSingle, BackColor = Color.White, ForeColor = Muted, ScrollBars = ScrollBars.Vertical, Text = "Select a row to inspect its purpose and tradeoff." }; body.Controls.Add(detail);
             var toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 80, WrapContents = true };
@@ -191,13 +207,16 @@ namespace Lean81
         Action<bool> captureControls;
         async Task StartCapture(int seconds)
         {
-            if (busy) return; workspace.Workload = Product.Clean(workspace.Workload, 80).Trim(); if (workspace.Workload.Length == 0) workspace.Workload = "Normal laptop use"; SaveWorkspace(); capture = null; chart.Values.Clear(); chart.Invalidate(); captureCancel = new CancellationTokenSource();
-            SetBusy(true, "Capturing CPU activity…"); captureControls(true);
+            if (busy) return; workspace.Workload = Product.Clean(workspace.Workload, 80).Trim(); if (workspace.Workload.Length == 0) workspace.Workload = "Normal laptop use"; SaveWorkspace(); capture = null; chart.Values.Clear(); chart.MemoryValues.Clear(); chart.DiskValues.Clear(); chart.Invalidate(); captureCancel = new CancellationTokenSource();
+            SetBusy(true, "Capturing CPU, memory and disk activity…"); captureControls(true);
             var progress = new Progress<CaptureSample>(sample =>
             {
-                if (chart == null || chart.IsDisposed) return; double cpu = Convert.ToDouble(sample.metrics["cpu_pct"] ?? 0, CultureInfo.InvariantCulture);
+                if (chart == null || chart.IsDisposed) return; double? cpu = ResourceAnalysis.Number(sample.metrics, "cpu_pct", 100);
                 chart.Values.Add(cpu); chart.Invalidate(); var top = sample.processes.FirstOrDefault();
-                captureStats.Text = cpu.ToString("0.0", CultureInfo.InvariantCulture) + "% CPU  ·  " + sample.t.ToString("0", CultureInfo.InvariantCulture) + "s  ·  " + (top == null ? "No accessible busy process" : top.name + " " + top.cpu_pct.ToString("0.0", CultureInfo.InvariantCulture) + "%");
+                var available = ResourceAnalysis.Number(sample.metrics, "memory_available_pct", 100);
+                chart.MemoryValues.Add(available.HasValue ? (double?)(100 - available.Value) : null); chart.DiskValues.Add(ResourceAnalysis.Number(sample.metrics, "disk_busy_pct", 100));
+                captureStats.Text = ResourceAnalysis.Format(ResourceAnalysis.Number(sample.metrics, "cpu_pct", 100), "% CPU") + "  ·  " + ResourceAnalysis.Format(available, "% RAM available") + "  ·  " + ResourceAnalysis.Format(ResourceAnalysis.Number(sample.metrics, "disk_busy_pct", 100), "% disk busy") + "  ·  " + sample.t.ToString("0", CultureInfo.InvariantCulture) + "s";
+                status.Text = top == null ? "Collecting resource observations…" : "CPU leader: " + top.name + " · " + top.cpu_pct.ToString("0.0", CultureInfo.InvariantCulture) + "%";
             });
             try
             {
@@ -218,13 +237,13 @@ namespace Lean81
         void ExportCapture()
         {
             if (capture == null || capture.Samples.Count == 0) return;
-            using (var options = new Form { Text = "Export CPU trace", ClientSize = new Size(480, 180), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false, Font = Font })
+            using (var options = new Form { Text = "Export resource trace", ClientSize = new Size(480, 180), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false, Font = Font })
             {
-                var text = new Label { Text = "The trace includes CPU, available memory, process IDs and working-set sizes. No paths or startup commands are exported.", Bounds = new Rectangle(20, 17, 440, 51) }; options.Controls.Add(text);
+                var text = new Label { Text = "The trace includes CPU, memory, disk counters and process IDs, memory and I/O. Process I/O includes network and devices. No paths or startup commands are exported.", Bounds = new Rectangle(20, 17, 440, 51) }; options.Controls.Add(text);
                 var names = new CheckBox { Text = "Include process names in this export", Bounds = new Rectangle(20, 78, 430, 25) }; options.Controls.Add(names);
                 var save = ActionButton("Choose file…", (s, e) => options.DialogResult = DialogResult.OK, true); save.Bounds = new Rectangle(310, 124, 150, 36); options.Controls.Add(save); options.AcceptButton = save;
                 if (options.ShowDialog(this) != DialogResult.OK) return;
-                using (var dialog = new SaveFileDialog { Filter = "ReclaimLab trace (*.jsonl)|*.jsonl|CPU sample spreadsheet (*.csv)|*.csv", FileName = "lean81-cpu-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture), AddExtension = true })
+                using (var dialog = new SaveFileDialog { Filter = "ReclaimLab trace (*.jsonl)|*.jsonl|Resource sample spreadsheet (*.csv)|*.csv", FileName = "lean81-resources-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture), AddExtension = true })
                     if (dialog.ShowDialog(this) == DialogResult.OK) try { if (dialog.FilterIndex == 2) capture.ExportCsv(dialog.FileName, names.Checked); else capture.Export(dialog.FileName, names.Checked); status.Text = "Capture exported · " + capture.Samples.Count + " samples"; } catch (Exception ex) { Error(ex); }
             }
         }

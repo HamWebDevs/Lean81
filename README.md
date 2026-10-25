@@ -1,63 +1,44 @@
 # Lean81
 
-**A lighter working day for older Windows laptops.**
+**Make room for what you use.**
 
-Lean81 is a small native Windows app for inspecting background load and making deliberate, reversible changes. Built for Windows 8.1 laptops with limited CPU and memory. C# / Windows Forms, no Python runtime, bundled browser, telemetry, account or permanent service.
+A small native Windows app for older laptops that struggle with CPU spikes, limited RAM and busy disks. Choose unused features, review reversible changes and capture what is happening during a slowdown. Built for **Windows 8.1 / .NET Framework 4.5.1**. No Python, bundled browser, installer or permanent service.
 
-[Download the preview](https://github.com/HamWebDevs/Lean81/releases/tag/v0.3.0) · [Quick start](docs/QUICKSTART.txt) · [Recovery](docs/RECOVERY.md) · [Compatibility](docs/COMPATIBILITY.md)
+[Download Lean81 1.0](https://github.com/HamWebDevs/Lean81/releases/tag/v1.0.0) · [Quick start](docs/QUICKSTART.txt) · [Feature guide](docs/FEATURES.md) · [Recovery](docs/RECOVERY.md)
 
-![Lean81 overview in synthetic demo mode](docs/screenshots/overview.png)
+![Lean81 Quick tune with synthetic data](docs/screenshots/quick-tune.png)
 
-Screenshots show the actual Windows app with synthetic demo data.
+## New in 1.0
 
-## New in 0.3.0
+- **Quick tune:** answer what you use, optionally include desktop effects, then build one explicit review. Original settings are saved before any changes.
+- **Browser / cloud gaming preset:** a starting point for a laptop mainly used for browsing and streaming games. Printing, Bluetooth, search and Superfetch stay checked until you choose otherwise.
+- **13 optional services:** includes separate choices for scanning, portable-device synchronization, error reporting and moved-file link tracking. Unused features and dependency checks control eligibility.
+- **Reversible desktop effects:** taskbar animations, desktop Peek and icon-label shadows. Restore the exact original DWORD or its original absence; sign out and back in to refresh Explorer.
+- **Resource capture:** CPU, available RAM, disk activity/throughput/queue, page-ins, commit pressure and kernel pools. Missing counters remain unknown.
+- **Sortable process leaders:** CPU, working-set RAM, private memory and read/write I/O, including memory-heavy apps that use little CPU. Up to 20 accessible leaders per sample.
+- **Better evidence:** CPU/RAM/disk charts, qualified findings, resource summaries in local reports and disk comparisons only when both captures have complete disk coverage.
 
-- **A clearer laptop report:** next steps, CPU evidence, device/storage observations and inventory coverage in a responsive, printable offline document.
-- **Baseline evidence:** export the selected saved result with the baseline and the same condition checks used in the app. Mismatches show reasons instead of misleading differences.
-- **Optional history:** include up to 12 aggregate observations without workload labels or machine identifiers. Software names stay a separate opt-in.
-- **Measurement context:** completion, valid samples, observed time, power and observer cost remain visible alongside each current result.
+![Lean81 resource details with synthetic data](docs/screenshots/resources.png)
 
-Guided setup, usage presets, CPU captures, recovery and Windows-tool shortcuts remain available.
+## Get started
 
-![Private local report choices in synthetic demo mode](docs/screenshots/report-options.png)
+1. Download **Lean81-1.0.0-portable.zip**, extract it and open **Lean81.exe**. The standalone EXE is also attached to the release.
+2. Open **Quick tune**. Pick **Browser / cloud gaming laptop** if useful, then check every answer. Keep a feature checked if you use it or are unsure.
+3. To experiment with indexing or Superfetch, untick those specific answers and read the tradeoffs. Disabling preloading can slow app launches.
+4. Choose **Build my review**, read the list and apply. If Windows asks for administrator permission, use the same account; the elevated app rescans and you build the review again.
+5. In **Startup apps**, select recognized apps you do not need at sign-in. Use **Scheduled tasks** and **Installed apps** for further individual review.
+6. Open **Resource capture**, record 30–120 seconds during a slowdown and inspect **Memory, disk & processes**. Set a baseline and repeat the same workload after changes.
+7. Use **Recovery** to inspect or restore original settings. Keep `%ProgramData%\Lean81` and `%LocalAppData%\Lean81` when upgrading.
 
-[Feature guide](docs/FEATURES.md) · [Privacy and local data](docs/PRIVACY.md)
+An idle service may cost almost nothing. A two-second sample can miss a brief spike. Process I/O includes network and device operations and is **not** per-process disk utilization. Aggregate disk readings can hide a single busy drive. Lean81 helps identify useful changes; it cannot guarantee a particular speed improvement.
 
-![Guided quick setup with synthetic choices](docs/screenshots/quick-setup.png)
+## Recovery and boundaries
 
-## What you can do
+Every change uses an allowlisted backend, fresh-state checks, a protected intent journal and post-write verification. Recovery checks the whole pending receipt before writing and stops for independent edits. Existing 0.1–0.3 receipts and saved workspaces remain supported.
 
-- Inspect Run startup entries and select recognized apps to stop launching at sign-in.
-- Review scheduled tasks; system, recognized security and hardware tasks are kept for inspection.
-- Describe which optional Windows features you use. Only unused allowlisted services without non-disabled dependents become selectable.
-- List installed desktop apps and open the normal Windows uninstaller.
-- Capture CPU, available memory and busy processes at two-second intervals; export a privacy-conscious JSONL trace compatible with [ReclaimLab](https://github.com/HamWebDevs/ReclaimLab).
-- Review every selected change and its tradeoff, save original settings before writing, and restore them through conflict-aware recovery.
+Networking, security, input, core OS and update services remain protected. No RAM cleaner, registry cleaner, blanket process killing, pagefile/timer/kernel tweaks, driver removal or automatic uninstallation is included. Inspection never runs discovered startup commands, task actions or uninstall strings. Desktop settings are a fixed three-value allowlist, not arbitrary registry editing.
 
-Nothing is disabled automatically. Lean81 does not promise a faster CPU: an idle background item may cost almost nothing. Capture the same workload before and after to see which changes help your machine.
-
-![Lean81 CPU capture with synthetic data](docs/screenshots/cpu-capture.png)
-
-![Saved CPU comparison with synthetic results](docs/screenshots/comparison.png)
-
-## Run it
-
-1. Download and extract **Lean81-0.3.0-portable.zip** from Releases.
-2. Open **Lean81.exe** and choose **Quick setup**. Scans and captures work without administrator rights.
-3. Keep uncertain features checked. Presets only fill answers; they never apply settings.
-4. Select recognized startup items or unused services, then choose **Review changes**. Enable changes when ready.
-5. In **CPU capture**, name the activity, record a baseline and repeat the same activity before comparing.
-6. Use **Recovery** to check or restore original settings. Keep `%ProgramData%\Lean81` and don't share its private receipt files.
-
-The release also includes a standalone **Lean81.exe**. Windows 8.1 includes the target .NET Framework 4.5.1. The portable ZIP includes the runtime-selection configuration, local instructions, feature/privacy guides and license. No install step is needed. For a safe tour, run `Lean81.exe --demo` with synthetic data.
-
-**0.3.0 is an unsigned preview.** The code and managed APIs target Windows 8.1. Automated Windows checks run on Server 2022; physical Windows 8.1 validation is pending. See [compatibility and limits](docs/COMPATIBILITY.md) before applying changes.
-
-## Deliberate boundaries
-
-Networking, security, core OS and update services stay outside the service allowlist. No registry cleaner, memory cleaner, blanket process killing, driver removal, pagefile changes, kernel/timer tweaks or automatic app uninstalls are included. Startup commands, task actions and uninstall strings are never executed during inspection.
-
-Service changes preserve start type, delayed-auto flag and original running state. Startup changes preserve the exact Run string and registry kind. Task changes preserve the task definition and change only its enabled state. Recovery stops when an item no longer matches either its original or expected disabled state. Windows does not provide a single atomic transaction across these subsystems; a partial failure is recorded for review.
+**The EXE is unsigned.** Windows 8.1 is the API target; physical Windows 8.1 testing remains pending. Automated checks use Windows Server 2022. See [compatibility and diagnostic limits](docs/COMPATIBILITY.md) and [local data/privacy](docs/PRIVACY.md).
 
 ## Build and test
 
@@ -67,20 +48,8 @@ On Windows with .NET Framework's C# compiler, PowerShell and Git:
 ./scripts/build.ps1 -Test -Gui -Package
 ```
 
-The script downloads Microsoft's pinned reference-assembly package (build time only), verifies its SHA256 and compiles using C# 5 against .NET Framework 4.5.1. Output is in `artifacts/`. It builds a WinExe and a separate console test runner, renders every page at two window sizes, checks setup/review cancellation and inventory interactions, captures demo screenshots and creates portable/source ZIPs with SHA256 checksums.
+The script downloads pinned Microsoft 4.5.1 reference assemblies at build time, verifies their hash, compiles C# 5 and creates the portable EXE/ZIP, source ZIP and SHA256 checksums. No build dependencies are downloaded by the released app.
 
-Native mutation fixtures run only on explicitly opted-in ephemeral Windows CI. They create uniquely named Run/task entries, never execute their commands, and clean up in `finally` blocks. No real installed service is toggled. The suite also checks native CPU capture and protected recovery storage. Ordinary local tests use in-memory backends.
+CI also runs disposable native Run/task fixtures on an explicitly opted-in ephemeral Windows runner, real resource capture and a read-only x86 resource-layout probe and device checks, GUI smoke/screenshot checks at two sizes, and browser/print verification of Windows-generated reports. Real installed services and existing scheduled tasks are never toggled by tests. Desktop-setting writes use isolated in-memory tests; native checks only inspect those values.
 
-| Area | Implementation |
-| --- | --- |
-| Interface | Native Windows Forms, on-demand work, small-window layout |
-| Change policy | Fixed optional-service allowlist and protected task/startup heuristics |
-| Transactions | Fresh-state checks, intent journal, post-write verification |
-| Recovery | Admin/SYSTEM storage, exact-state checks, whole-batch restore preflight |
-| Diagnostics | GetSystemTimes, GlobalMemoryStatusEx, process-time deltas, fixed-drive capacity |
-| Local workspace | Bounded preferences and aggregate history; no imported apply plans |
-| Comparisons | Time-weighted CPU, coverage/power/hardware/workload checks |
-| Exports | Encoded local HTML, formula-safe CSV, ReclaimLab JSONL |
-| Release | Windows build and fixtures, GUI evidence, portable/source ZIPs, SHA256 |
-
-Contributions: read [AGENTS.md](AGENTS.md), [CONTRIBUTING.md](CONTRIBUTING.md), and the safety boundaries before adding system changes. Public credit: **HamWebDevs**. MIT licensed.
+Public owner: **HamWebDevs**. MIT licensed. Read [AGENTS.md](AGENTS.md) and [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.

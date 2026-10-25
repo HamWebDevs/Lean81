@@ -12,13 +12,14 @@ namespace Lean81
 {
     public static class Profiles
     {
-        public static readonly string[] Names = { "Keep every feature", "No home or media sharing", "No sharing, Bluetooth or touch" };
+        public static readonly string[] Names = { "Keep every feature", "No home or media sharing", "No sharing, Bluetooth or touch", "Browser / cloud gaming laptop" };
         public static UsageProfile Preset(int index)
         {
             if (index < 0 || index >= Names.Length) throw new ArgumentOutOfRangeException("index");
             var p = new UsageProfile();
             if (index > 0) p.HomeGroup = p.MediaSharing = p.OfflineFiles = false;
             if (index == 2) p.Bluetooth = p.TouchKeyboard = false;
+            if (index == 3) p.HomeGroup = p.MediaSharing = p.OfflineFiles = p.TouchKeyboard = p.Scanning = p.PortableDevices = p.LinkTracking = false;
             return p;
         }
         public static void Copy(UsageProfile source, UsageProfile target)
@@ -26,12 +27,14 @@ namespace Lean81
             target.Printing = source.Printing; target.Bluetooth = source.Bluetooth; target.IndexedSearch = source.IndexedSearch;
             target.TouchKeyboard = source.TouchKeyboard; target.HomeGroup = source.HomeGroup; target.MediaSharing = source.MediaSharing;
             target.OfflineFiles = source.OfflineFiles; target.Prefetch = source.Prefetch;
+            target.Scanning = source.Scanning; target.PortableDevices = source.PortableDevices; target.ErrorReporting = source.ErrorReporting; target.LinkTracking = source.LinkTracking;
         }
         public static string FeatureReason(ScanItem item, UsageProfile profile)
         {
             var s = item.Before;
             if (s == null) return "Inventory only";
             if (!s.Exists || !s.Enabled) return "Already disabled or absent";
+            if (s.Kind == "setting") return item.CanChange ? "Optional desktop effect; choose individually" : "Unsupported value or missing settings location";
             if (s.Kind == "service")
             {
                 var option = Policy.Services.FirstOrDefault(o => o.Name.Equals(s.Target, StringComparison.OrdinalIgnoreCase));
@@ -113,8 +116,10 @@ namespace Lean81
             else result.Add(new Recommendation { Title = "Tell Lean81 what you use", Reason = "Uncertain features stay enabled. Usage answers unlock specific optional-service choices.", Action = "Usage profile", Page = 1 });
             if (device != null && device.Disks.Any(d => d.LowSpace)) result.Add(new Recommendation { Title = "A fixed drive is low on free space", Reason = "Review storage and open Windows Disk Cleanup if useful. Lean81 does not delete your files.", Action = "Storage", Page = 8 });
             if (capture != null && capture.AverageAvailableMemory.HasValue && capture.AverageAvailableMemory < 15) result.Add(new Recommendation { Title = "Low available memory was observed", Reason = "Try fewer browser tabs and background apps, then repeat the same workload. This is an observation, not a memory-cleaner score.", Action = "CPU results", Page = 6 });
-            if (capture != null && capture.PeakCpu >= 80) result.Add(new Recommendation { Title = "High CPU samples were observed", Reason = "Inspect the captured busy processes. A two-second sample cannot identify every short spike.", Action = "CPU capture", Page = 6 });
-            result.Add(new Recommendation { Title = capture == null ? "Record a CPU baseline" : "Compare another run with your baseline", Reason = "Use the same workload, duration and power state. Results are observations and do not establish what caused a change.", Action = "CPU capture", Page = 6 });
+            if (capture != null && capture.PeakCpu >= 80) result.Add(new Recommendation { Title = "High CPU samples were observed", Reason = "Inspect the captured busy processes. A two-second sample cannot identify every short spike.", Action = "Resource capture", Page = 6 });
+            if (capture != null && capture.AverageDiskBusy >= 80) result.Add(new Recommendation { Title = "High aggregate disk activity was observed", Reason = "Inspect the resource details and Resource Monitor. Page-ins, app activity and maintenance can all contribute. Process I/O also includes network and devices.", Action = "Resource capture", Page = 6 });
+            if (capture != null && capture.PeakCommit >= 90) result.Add(new Recommendation { Title = "Committed memory approached its limit", Reason = "Save work, close unused apps and keep the paging file enabled. Inspect resource details during the slowdown.", Action = "Resource capture", Page = 6 });
+            result.Add(new Recommendation { Title = capture == null ? "Record a CPU baseline" : "Compare another run with your baseline", Reason = "Use the same workload, duration and power state. Results are observations and do not establish what caused a change.", Action = "Resource capture", Page = 6 });
             return result;
         }
     }

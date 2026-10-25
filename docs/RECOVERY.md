@@ -1,6 +1,6 @@
 # Recovery
 
-Each batch saves original settings in `%ProgramData%\Lean81` **before** the first write. The folder is restricted to Administrators and SYSTEM. Receipts contain exact registry strings, service start type/delayed/running state, or task enabled state and a definition hash. They are private machine data, not support attachments.
+Each batch saves original settings in `%ProgramData%\Lean81` **before** the first write. The folder is restricted to Administrators and SYSTEM. Receipts contain exact registry strings, service start type/delayed/running state, task enabled state and a definition hash, or one of three allowlisted user DWORD values (including its original absence). They are private machine data, not support attachments.
 
 Open Lean81 as the same Windows user, enable administrator mode, and select a receipt in **Recovery**. Review the items and choose **Restore settings**. A restore first checks every pending item against the saved original and expected disabled states. If anything changed independently, the entire restore preflight stops without writes. Lean81 never replaces a new startup command or a changed task definition with an old copy.
 
@@ -16,4 +16,8 @@ Directory redirections, unexpected storage owners/permissions, invalid receipt I
 
 Version 0.2 adds **Check saved states**. It reads each saved item's current state and reports Already original, Matches saved disabled state, Conflict, or Unavailable. This assessment makes no system-setting changes. Restore still performs a fresh whole-receipt preflight; a previous assessment is not an authorization to overwrite a later edit.
 
-Existing version 0.1 receipts remain supported because the receipt schema and change scope are unchanged. Keep the protected ProgramData folder when upgrading or moving the EXE. Local workspace preferences and CPU summaries are separate from recovery receipts and cannot apply or restore settings.
+Existing version 0.1 receipts remain supported because the receipt schema and earlier change kinds remain supported. Keep the protected ProgramData folder when upgrading or moving the EXE. Local workspace preferences and CPU summaries are separate from recovery receipts and cannot apply or restore settings.
+
+## Desktop effects in 1.0
+
+Desktop changes use the same protected journal and exact-state recovery engine. If a DWORD was absent, recovery removes only the value created by Lean81; if it existed, the exact original DWORD is restored. Existing keys are never recreated. A later independent edit stops recovery. Sign out and back in to refresh Explorer after applying or restoring effects.

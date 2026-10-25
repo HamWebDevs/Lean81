@@ -42,6 +42,11 @@ namespace Lean81
                 catch (System.ComponentModel.Win32Exception ex) { if (ex.NativeErrorCode != 1060) Note(report, option.Name + " unavailable", ex); }
                 catch (Exception ex) { Note(report, option.Name + " unavailable", ex); }
             }
+            foreach (var option in DesktopSettings.Options)
+            {
+                try { report.Items.Add(Make(DesktopSettings.Read(new ItemState { Kind = "setting", Scope = "user", Target = option.Id }), option.Title, "Optional desktop effect. Changes take full effect after signing out and back in.", option.Tradeoff, profile)); }
+                catch (Exception ex) { Note(report, option.Title + " unavailable", ex); }
+            }
             try
             {
                 dynamic scheduler = Scheduler();
@@ -70,6 +75,7 @@ namespace Lean81
         }
         public ItemState Read(ItemState identity)
         {
+            if (identity.Kind == "setting") return DesktopSettings.Read(identity);
             if (identity.Kind == "service") return NativeServices.Read(identity.Target);
             if (identity.Kind == "task")
             {
@@ -100,6 +106,7 @@ namespace Lean81
         {
             Policy.Validate(state, profile, restoring);
             if (!IsAdministrator) throw new InvalidOperationException("Administrator mode is required.");
+            if (state.Kind == "setting") { DesktopSettings.CheckAccess(state); return; }
             if (state.Kind == "service")
             {
                 var now = NativeServices.Read(state.Target);
@@ -131,8 +138,9 @@ namespace Lean81
         void Set(ItemState original, bool restore)
         {
             // The engine has just verified identity/state and saved intent. Revalidate the allowlist here too.
-            Policy.Validate(original, new UsageProfile { Printing = false, Bluetooth = false, IndexedSearch = false, TouchKeyboard = false, HomeGroup = false, MediaSharing = false, OfflineFiles = false, Prefetch = false }, restore);
+            Policy.Validate(original, new UsageProfile { Printing = false, Bluetooth = false, IndexedSearch = false, TouchKeyboard = false, HomeGroup = false, MediaSharing = false, OfflineFiles = false, Prefetch = false, Scanning = false, PortableDevices = false, ErrorReporting = false, LinkTracking = false }, restore);
             if (!IsAdministrator) throw new InvalidOperationException("Administrator mode is required.");
+            if (original.Kind == "setting") { DesktopSettings.Set(original, restore); return; }
             if (original.Kind == "service") { NativeServices.Set(original, restore); return; }
             if (original.Kind == "startup")
             {

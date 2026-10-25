@@ -1,60 +1,70 @@
-# Using Lean81 0.3
+# Using Lean81 1.0
 
-## Start with three choices
+## Quick tune
 
-Open **Quick setup**, keep uncertain features checked, and continue to the optional-service list. A preset fills the answers so you can inspect them. It never changes Windows. Printing/PDF printers, indexed search and application preloading remain checked in every preset because disabling them can make ordinary laptop use worse.
+Open **Quick tune**, choose a preset if useful and check every answer. Checked means you use the feature, or want to keep it. Unticked means Lean81 may offer its installed optional service for disabling. A service with enabled dependents stays protected. A preset never applies settings.
 
 | Preset | Answers it clears |
 | --- | --- |
 | Keep every feature | None |
-| No home or media sharing | HomeGroup, media-player sharing, offline network files |
+| No home or media sharing | HomeGroup, media sharing, offline network files |
 | No sharing, Bluetooth or touch | The sharing answers above, plus Bluetooth and touch/pen/on-screen keyboard |
+| Browser / cloud gaming laptop | Sharing, touch/pen/on-screen keyboard, scanner/image acquisition, portable-device library synchronization, moved-file link tracking |
 
-The **Why / next step** column explains entries that are kept, protected or already disabled. **Selectable only** reduces the list to supported choices. **Select unused services** selects eligible optional services for review; it does not apply them. Startup entries and tasks always require recognition and individual choice.
+Every preset keeps printing/PDF printers, indexed search, Superfetch and error reporting. The browser preset also keeps Bluetooth. Untick indexed search or Superfetch yourself if you want to test those tradeoffs. Preloading may help application launches; fewer enabled services does not automatically mean a faster laptop.
 
-**Recommendations** routes you to useful next steps based on the scan, your answers, drive capacity and any CPU observations. A selectable entry is not proof that it wastes CPU. Unknown apps are not automatically labeled bloatware.
+**Also include the three desktop effects** is a separate opt-in. **Build my review** refreshes the inventory and stages eligible services plus those effects. Read the exact tradeoffs, then apply. Nothing applies just by selecting a preset or building a review. Startup apps and scheduled tasks require individual selection.
 
-## Review and recovery
+Without administrator rights you can scan, capture, export and save a text review. **Enable changes & rescan** opens Lean81 under the same Windows account. Answers are remembered; build the review again against the fresh elevated scan. No apply plan is imported from a file.
 
-You can inspect or save a text review without administrator rights. **Enable changes & rescan** asks Windows for administrator permission under the same account. Usage answers carry over through the local preferences file; selections are made again against a fresh scan. No saved or imported apply plan is trusted by the privileged process.
+## Background choices and desktop effects
 
-The app saves original settings before its first write and rechecks each selected state. **Recovery → Check saved states** is a read-only assessment of current versus recorded settings. **Restore selected receipt** still performs a fresh full preflight. See [RECOVERY.md](RECOVERY.md) for partial operations, independent edits and manual-review cases.
+**Startup apps** covers supported HKCU/HKLM Run values. Changes affect future sign-ins; already running apps are not killed. **Scheduled tasks** disables future launches, without stopping a running instance. System and recognized security/hardware tasks are inspection only.
 
-Disabling a scheduled task prevents future automatic launches. It does not stop an already running instance. Startup changes affect future sign-ins. Service changes disable start type and stop that one service, without recursively stopping dependents.
+**Optional services** offers 13 allowlisted services across printing, Bluetooth, indexed search, touch input, HomeGroup, media sharing, offline files, Superfetch, scanner/image acquisition, portable-device synchronization, error reporting and file-link tracking. Changing a service disables its start type and stops that service only; dependents are not stopped recursively. Absent services are skipped.
 
-## CPU capture and saved results
+**Desktop effects** has three fixed Explorer settings: taskbar animations, desktop Peek and icon-label shadows. Selected DWORDs are set to zero. Exact previous values, including absence, are saved. Only existing settings keys are used. Peek uses HKCU\Software\Microsoft\Windows\DWM; the other two use HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced. Sign out and back in to refresh Explorer; Lean81 does not restart Explorer or close your apps. Shadows can affect text readability on your wallpaper.
 
-1. Give the activity a short workload label, such as Browsing.
-2. Capture 30, 60 or 120 seconds while doing that activity.
-3. Open **Saved results & baseline**, select the result and choose **Use as baseline**.
-4. Make a deliberate change, let startup settle, then repeat the same activity and duration on the same power source.
-5. Select the new result to see the comparison, or click **Compare selected**.
+**Installed apps** filters desktop software by name/publisher and opens the ordinary Windows uninstaller. It never executes registry uninstall commands or labels unknown software as bloatware.
 
-History stores at most 12 aggregate summaries. It retains the baseline when aging out old results. Delete a selected result to remove it locally. Raw process observations remain in memory until the app closes unless you explicitly export a trace. Summaries retain a workload label and numeric results; they contain no process names, PIDs or command paths.
+## Resource capture
 
-CPU means are weighted by observed sample intervals. The comparison reports absolute percentage-point differences, peak sampled CPU and seconds observed at 80%+ CPU. It checks distinct identities, matching hardware/machine, matching synthetic status and workload labels, complete captures, full CPU sample coverage, a known matching power source, at least 15 observed seconds and similar durations. A failed condition is explained instead of generating a misleading improvement score.
+Record 30, 60 or 120 seconds while the slowdown is happening. Sampling is every two seconds, on demand; no monitor continues after capture ends. **Stop** retains a partial result when samples exist.
 
-These checks cannot prove identical workloads or causality. Process lists are limited to the five accessible busy processes per two-second sample; inaccessible and short-lived processes can be missed. Capture has an observer cost, recorded in the trace. No wake-delay probe is included, and nothing monitors continuously after the app closes.
+The chart uses teal for CPU, blue for physical RAM in use and amber for aggregate physical-disk busy time. Missing observations produce gaps, not zero readings. Open **Memory, disk & processes** for:
 
-## Device, storage and Windows tools
+- Average available physical RAM, committed memory/commit limit and peak commit pressure.
+- Aggregate physical-disk activity, throughput and average queue length.
+- Disk page-ins, kernel CPU, paged/nonpaged kernel pools and system cache.
+- Process leaders sorted by peak CPU, working-set RAM, private memory or read/write I/O.
+- Plain-language findings and a shortcut to Windows Resource Monitor.
 
-**Device & storage** shows CPU, logical processors, Windows architecture, physical and available memory, Windows boot uptime, power/battery when available, and available capacity on fixed drives. Free space is for the current account. Low-space guidance means under 10% or under 5 GiB available; it is a practical review threshold, not a performance guarantee.
+Each sample retains the union of its top five CPU, working-set, private-memory and I/O processes, capped at 20. Zero-CPU memory-heavy apps are included. Inaccessible, newly started and short-lived processes may be missed. CPU is normalized across logical processors. Peak process values are observed maxima, not continuous totals. The Samples column shows how often that leader was retained; it is not the process lifetime. Reused PIDs are kept separate during analysis.
 
-No disk-health, SSD, SMART or temperature diagnosis is inferred from capacity. **Windows Disk Cleanup** opens the normal Windows dialog. Lean81 does not select categories or delete files for you.
+Process I/O includes file, network and device operations; it is **not** per-process disk usage. Disk counters are aggregate across physical disks and can hide one busy drive. Use Resource Monitor for detailed attribution. Disk page-ins can read mapped program/data files as well as paging-file data. Reusable cache is not wasted RAM; working sets share pages and must not be added as total physical usage. Kernel-pool size alone does not establish a driver leak.
 
-**Help & tools** provides fixed shortcuts to Task Manager, Resource Monitor, Task Scheduler, Services, Programs and Features, Disk Cleanup, Power Options, Device Manager and Performance Monitor. Tool launch arguments come from the built-in catalog, never inspected commands or preferences. Demo mode does not launch Windows tools.
+Missing or disabled counters remain unavailable without preventing the other capture readings. There is no wake-delay, input-latency, SMART, disk-health or temperature probe.
 
-## Export and share
+## Baseline and history
 
-- **Export report:** a responsive, printable local HTML report with recommendations, scan/device/capture timestamps, inventory coverage and CPU evidence. From Saved results, use **Export selected** to choose which result is included. Include the retained baseline to apply the same comparison checks used in the app; mismatches show reasons without differences. Aggregate history is a separate opt-in, with up to 12 numbered observations. Workload labels and machine identities are always withheld. Software names are omitted by default. Raw startup commands, command-path fields, task XML, receipts, account details, scan-error text and workload labels are excluded. Review the report before sharing it.
-- **Export trace → JSONL:** compatible with ReclaimLab schema 1. CPU, available memory, power and process observations are included. Process names are omitted unless explicitly selected. It includes process IDs and memory sizes as described in the dialog.
-- **Export trace → CSV:** numeric sample timeline for a spreadsheet, plus the highest observed process per sample. Names stay opt-in; strings are quoted and formula-leading names are neutralized.
-- **Save review:** human-readable names and tradeoffs. It is a document for review, not an executable or importable change plan.
+Give your activity a label. After capture, open **Saved results & baseline** and choose **Use as baseline**. After a deliberate change, repeat the same activity, duration and power source, then compare a different result.
 
-No export is uploaded automatically. Reports load no remote scripts, fonts or images. For storage locations and deletion, see [PRIVACY.md](PRIVACY.md).
+CPU means are weighted by the observed intervals. Comparisons require distinct results, matching machine/hardware, synthetic state, workload labels and known power, complete captures, full CPU coverage, at least 15 observed seconds and similar durations. Matching labels cannot prove identical workloads or causality. Disk differences additionally require valid disk readings in every sample of both captures; CPU comparisons can remain available when disk data is missing.
 
-## Upgrade from 0.1
+Up to 12 aggregate results are retained, including the chosen baseline. New summaries include disk and commit coverage and peak nonpaged pool. Older summaries load with those new fields unavailable. Process names, PIDs and raw samples stay in memory unless you export them; history contains none of those fields.
 
-Close Lean81, extract the new portable ZIP into a new folder, and open the new EXE. Keep `%ProgramData%\Lean81` for recovery. Existing version 0.1 receipts use the same supported schema. Preferences and summaries are stored under `%LocalAppData%\Lean81\workspace.json`; if saving fails, a notice explains that new choices/results remain in this session. Invalid settings fall back to keeping every feature.
+## Reports, tools and recovery
 
-This is an unsigned Windows 8.1 / .NET Framework 4.5.1 preview. Automated checks run on newer Windows. Actual Windows 8.1 hardware validation is pending.
+**Export report** saves responsive, printable offline HTML with next steps, inventory coverage, device capacity and CPU/resource evidence. Saved results can export the chosen result, baseline and optional numbered history. Workload labels, machine identities, raw commands, paths, task XML, private error details and receipts are withheld. Software names are a separate opt-in.
+
+**Export trace** offers ReclaimLab schema-1 JSONL with resource metrics and per-process CPU/memory/I/O, or CSV with the numeric timeline and top CPU process. Process names stay opt-in. CSV strings are quoted and formula-leading names neutralized. No export is uploaded automatically.
+
+**Help & tools** opens fixed Windows tools, including Task Manager, Resource Monitor, Services, Programs and Features and Disk Cleanup. Windows tools have their own actions; Lean81 does not select cleanup categories or delete files.
+
+**Recovery** saves settings before changes, checks original/expected states and restores the exact originals. Independent edits or ambiguous partial states stop automatic recovery. **Check saved states** is read only. See [RECOVERY.md](RECOVERY.md).
+
+## Upgrade
+
+Close the old app and extract the new ZIP into a new folder. Keep `%ProgramData%\Lean81` for original settings and `%LocalAppData%\Lean81` for preferences/history. Receipts and workspaces from 0.1–0.3 remain supported. New feature answers default to kept when absent from older preferences.
+
+The EXE is unsigned and targets Windows 8.1 / .NET Framework 4.5.1. Automated checks use newer Windows; physical Windows 8.1 validation is pending. See [COMPATIBILITY.md](COMPATIBILITY.md) and [PRIVACY.md](PRIVACY.md).
