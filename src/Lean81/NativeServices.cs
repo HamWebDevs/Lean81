@@ -76,7 +76,7 @@ namespace Lean81
                     var dependents = controller.DependentServices;
                     try
                     {
-                        state.Dependents = dependents.Where(d => ReadStart(scm, d.ServiceName) != 4).Select(d => d.ServiceName).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
+                        state.Dependents = dependents.Where(d => ReadStart(scm, d.ServiceName) != 4 || d.Status != ServiceControllerStatus.Stopped).Select(d => d.ServiceName).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray();
                     }
                     finally { foreach (var d in dependents) d.Dispose(); }
                     return state;
@@ -107,7 +107,12 @@ namespace Lean81
             using (var controller = new ServiceController(original.Target))
             {
                 if (!restore && original.Delayed) { int no = 0; Check(ChangeServiceConfig2(service, 3, ref no)); }
-                Check(ChangeServiceConfig(service, UInt32.MaxValue, restore ? (uint)original.StartType : 4, UInt32.MaxValue, null, null, IntPtr.Zero, null, null, null, null));
+                // A disabled-but-running service needs a temporary demand start to
+                // restore its running state. Always put its disabled start type back.
+                bool restartDisabled = restore && original.StartType == 4 && original.Running;
+                Check(ChangeServiceConfig(service, UInt32.MaxValue, restartDisabled ? 3 : restore ? (uint)original.StartType : 4, UInt32.MaxValue, null, null, IntPtr.Zero, null, null, null, null));
+                try
+                {
                 if (restore && original.StartType == 2) { int delayed = original.Delayed ? 1 : 0; Check(ChangeServiceConfig2(service, 3, ref delayed)); }
                 controller.Refresh();
                 if (!restore && controller.Status == ServiceControllerStatus.Running)
@@ -118,6 +123,11 @@ namespace Lean81
                 }
                 if (restore && original.Running && controller.Status == ServiceControllerStatus.Stopped)
                 { controller.Start(); controller.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(15)); }
+                }
+                finally
+                {
+                    if (restartDisabled) Check(ChangeServiceConfig(service, UInt32.MaxValue, 4, UInt32.MaxValue, null, null, IntPtr.Zero, null, null, null, null));
+                }
             }
         }
     }

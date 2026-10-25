@@ -79,7 +79,7 @@ if ($Gui) {
     if ($process.ExitCode -ne 0 -or !(Test-Path (Join-Path $guiDir 'gui-smoke.txt'))) { throw 'GUI smoke failed; inspect GUI artifacts.' }
 }
 if ($Package) {
-    $version = '1.1.0'
+    $version = '1.2.0-rc.1'
     $portable = Join-Path $out ('Lean81-' + $version + '-portable')
     if (Test-Path $portable) { Remove-Item -Recurse -Force $portable }
     New-Item -ItemType Directory $portable | Out-Null
@@ -109,6 +109,6 @@ if ($Package) {
     [IO.File]::WriteAllLines((Join-Path $out 'SHA256SUMS.txt'), $lines, (New-Object Text.UTF8Encoding($false)))
     if ((Get-Item $exe).Length -gt 1MB) { throw 'Unexpected executable size; review before release.' }
     $metadata = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
-    if ($metadata.FileVersion -ne ($version + '.0')) { throw 'Executable version mismatch.' }
+    if ($metadata.FileVersion -ne (($version -split '-')[0] + '.0') -or $metadata.ProductVersion -ne $version) { throw 'Executable version mismatch.' }
     Write-Host ('Packaged Lean81 ' + $version + ', EXE ' + (Get-Item $exe).Length + ' bytes')
 }

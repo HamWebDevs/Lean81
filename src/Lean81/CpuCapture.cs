@@ -87,6 +87,7 @@ namespace Lean81
                     metrics = new Dictionary<string, object> { { "cpu_pct", cpu }, { "memory_available_pct", 43.0 }, { "power", "ac" }, { "disk_busy_pct", i == 8 ? 96.0 : 24.0 }, { "disk_bytes_per_sec", 4.0 * 1024 * 1024 }, { "disk_queue", 0.4 }, { "pages_input_per_sec", 2.0 }, { "commit_pct", 56.0 }, { "commit_bytes", 3.36 * 1073741824 }, { "commit_limit_bytes", 6.0 * 1073741824 }, { "kernel_nonpaged_bytes", 180.0 * 1048576 }, { "kernel_paged_bytes", 240.0 * 1048576 }, { "system_cache_bytes", 700.0 * 1048576 }, { "kernel_cpu_pct", 8.0 } },
                     processes = new List<ProcessReading> { new ProcessReading { pid = 120, name = "ExampleApp", cpu_pct = cpu * 0.7, rss_bytes = 80 * 1024 * 1024, private_bytes = 65 * 1024 * 1024, io_bytes_per_sec = 3.0 * 1048576, started_ticks = 1 }, new ProcessReading { pid = 121, name = "IdleMemoryApp", cpu_pct = 0, rss_bytes = 850 * 1024 * 1024, private_bytes = 720 * 1024 * 1024, io_bytes_per_sec = 0, started_ticks = 1 } } });
             }
+            foreach (var sample in r.Samples) sample.metrics["memory_available_bytes"] = 0.43 * r.MemoryBytes;
             return r;
         }
     }

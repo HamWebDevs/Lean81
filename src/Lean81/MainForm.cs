@@ -59,7 +59,7 @@ namespace Lean81
         TableLayoutPanel pageLayout;
         ScanReport report; int page = 11; bool busy; CancellationTokenSource captureCancel;
         CaptureResult capture; CpuChart chart; Label captureStats;
-        static readonly string[] Pages = { "Overview", "Usage profile", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "Resource capture", "Recovery", "Device & storage", "Recommendations", "Help & tools", "Deep tune", "Desktop effects", "Running apps" };
+        static readonly string[] Pages = { "Overview", "Usage profile", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "Resource capture", "Recovery", "Device & storage", "Recommendations", "Help & tools", "Deep tune", "Desktop effects", "Running apps", "Tune result" };
         public MainForm(IBackend backend, IJournalStore journals, bool demo)
         {
             this.backend = backend; this.journals = journals; this.demo = demo; runningBackend = demo ? (IRunningApps)new DemoRunningApps() : new WindowsRunningApps();
@@ -136,7 +136,7 @@ namespace Lean81
             for (int i = 0; i < navigation.Count; i++) { navigation[i].BackColor = i == page ? Color.FromArgb(44, 68, 85) : Ink; navigation[i].ForeColor = i == page ? Color.White : Color.FromArgb(202, 215, 224); }
             var navigationHost = navigation[index].Parent as ScrollableControl;
             if (navigationHost != null) navigationHost.ScrollControlIntoView(navigation[index]);
-            if (index == 0) Overview(); else if (index == 1) Profile(); else if (index >= 2 && index <= 4) Inventory(index == 2 ? "startup" : index == 3 ? "task" : "service"); else if (index == 5) Apps(); else if (index == 6) CapturePage(); else if (index == 7) Recovery(); else if (index == 8) DevicePage(); else if (index == 9) RecommendationsPage(); else if (index == 10) ToolsPage(); else if (index == 11) QuickTunePage(); else if (index == 12) Inventory("setting"); else RunningAppsPage();
+            if (index == 0) Overview(); else if (index == 1) Profile(); else if (index >= 2 && index <= 4) Inventory(index == 2 ? "startup" : index == 3 ? "task" : "service"); else if (index == 5) Apps(); else if (index == 6) CapturePage(); else if (index == 7) Recovery(); else if (index == 8) DevicePage(); else if (index == 9) RecommendationsPage(); else if (index == 10) ToolsPage(); else if (index == 11) QuickTunePage(); else if (index == 12) Inventory("setting"); else if (index == 13) RunningAppsPage(); else SessionResultPage();
             UpdateSelection();
         }
         void SetBusy(bool value, string message)

@@ -28,7 +28,7 @@ namespace Lean81
         {
             if (report == null || profile == null) throw new InvalidOperationException("Scan the laptop before preparing a deep tune.");
             var plan = new DeepTunePlan { Profile = new UsageProfile() }; Profiles.Copy(profile, plan.Profile);
-            foreach (var item in report.Items.Where(i => i.Before != null && i.Before.Exists && i.Before.Enabled))
+            foreach (var item in report.Items.Where(i => Policy.NeedsReduction(i.Before)))
             {
                 var state = item.Before; bool choose = false;
                 if (state.Kind == "service")

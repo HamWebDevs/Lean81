@@ -10,7 +10,7 @@ namespace Lean81
 {
     public static class Product
     {
-        public const string Version = "1.1.0";
+        public const string Version = "1.2.0-rc.1";
         public const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         public const int MaxItems = 512;
         public const int MaxChanges = 40;

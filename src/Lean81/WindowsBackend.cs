@@ -86,7 +86,7 @@ namespace Lean81
         { if (report.Notes.Count < 30) report.Notes.Add(prefix + ": " + Product.Clean(ex.Message, 180)); }
         static ScanItem Make(ItemState state, string name, string detail, string tradeoff, UsageProfile profile)
         {
-            bool allowed = state.Exists && state.Enabled;
+            bool allowed = Policy.NeedsReduction(state);
             try { Policy.Validate(state, profile, false); } catch { allowed = false; }
             return new ScanItem { Id = Product.Hash(state.Identity()), Name = Product.Clean(name, 180), Kind = state.Kind, Scope = state.Scope, Feature = state.Kind == "startup" ? StartupRules.Feature(state.Target + " " + state.Value) : null,
                 Status = Policy.StateLabel(state), Detail = detail, Tradeoff = tradeoff, CanChange = allowed,

@@ -43,6 +43,8 @@ namespace Lean81
         };
         static readonly Regex Protected = new Regex(@"(?i)(defender|securityhealth|antivirus|msascui|mpcmdrun|smartscreen|avast|avira|bitdefender|kaspersky|malwarebytes|mcafee|norton|symantec|sophos|webroot|trendmicro|eset|syntp|etdctrl|touchpad|hotkey|igfxtray|hkcmd|ctfmon|userinit|nvcontainer|audiodg|wudfhost)", RegexOptions.Compiled);
         public static bool IsProtectedText(string value) { return Protected.IsMatch(value ?? ""); }
+        public static bool NeedsReduction(ItemState state)
+        { return state != null && state.Exists && (state.Enabled || state.Kind == "service" && state.Running && state.StartType == 4 && !state.Delayed); }
         public static bool ValidName(string value) { return !String.IsNullOrWhiteSpace(value) && value.Length <= 256 && !value.Any(Char.IsControl); }
         public static bool ValidTaskPath(string value)
         {
@@ -58,6 +60,8 @@ namespace Lean81
                 var option = Services.FirstOrDefault(s => String.Equals(s.Name, state.Target, StringComparison.OrdinalIgnoreCase));
                 if (option == null || state.Scope != "machine" || !state.Exists || state.StartType < 2 || state.StartType > 4 || String.IsNullOrEmpty(state.Definition) || state.Definition.Length != 64)
                     throw new InvalidOperationException("This service is outside Lean81's optional-service policy.");
+                if (state.Enabled != (state.StartType != 4) || !restoring && state.StartType == 4 && state.Delayed)
+                    throw new InvalidOperationException("This service has an unsupported start/delay state; keep it for manual review.");
                 if (!restoring && profile.Uses(option.Feature)) throw new InvalidOperationException("Your usage profile keeps this feature enabled.");
                 if (!restoring && (state.Dependents ?? new string[0]).Length != 0)
                     throw new InvalidOperationException("A non-disabled dependent service needs this service. No dependent services will be stopped.");
