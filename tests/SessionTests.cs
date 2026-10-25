@@ -19,6 +19,7 @@ static partial class Tests
     {
         var r = new CaptureResult();
         for (int i = 0; i < 4; i++) r.Samples.Add(new CaptureSample { dt = 2, metrics = new Dictionary<string, object> { { "cpu_pct", cpu }, { "memory_available_bytes", memory * 1048576 }, { "disk_busy_pct", disk }, { "commit_pct", 50.0 }, { "power", "ac" } }, processes = new List<ProcessReading>() });
+        foreach (var sample in r.Samples) sample.metrics["memory_available_pct"] = memory / 4096 * 100;
         return r;
     }
     static void SessionTests()
@@ -92,6 +93,10 @@ static partial class Tests
             var b = Window(30, 700, 10); foreach (string mode in new[] { "battery", "unknown" }) { var a = Window(30, 700, 10); a.Samples[0].metrics["power"] = mode; Assert(TuneReadings.Compare(b, a).All(r => r.Difference == "Power changed / unknown")); }
         });
         Test("real and synthetic observations are never compared", () => { var a = Window(30, 700, 10); a.Synthetic = true; Assert(TuneReadings.Compare(Window(30, 700, 10), a).All(r => r.Difference == "Demo / real readings differ")); });
+        Test("after-check findings identify remaining pressure inside the app", () => { var text = TuneReadings.NextSteps(Window(95, 100, 95)); Assert(text.Contains("CPU remains busy") && text.Contains("Available RAM remains low") && text.Contains("disk activity remains high") && text.Contains("network/device")); });
+        Test("quiet short observations never claim measured acceleration", () => { var text = TuneReadings.NextSteps(Window(20, 1200, 10)); Assert(text.Contains("does not establish a speed increase")); });
+        Test("missing after-check data remains unknown", () => { var a = Window(20, 1200, 10); a.Interrupted = true; Assert(TuneReadings.NextSteps(a).Contains("unknown") && !TuneReadings.NextSteps(a).Contains("No sustained")); });
+        Test("null or invalid intervals cannot produce a resource delta", () => { var b = Window(20, 1200, 10); b.Samples[0] = null; Assert(TuneReadings.Compare(Window(20, 1200, 10), b).All(r => r.After == "Unavailable")); });
         Test("already disabled but running optional service is still actionable", () => { var s = Service(); s.StartType = 4; s.Enabled = s.Delayed = false; var b = new ServiceGraph(s); var p = DeepTunePlan.Build(b.Scan(Unused()), Unused(), false, false, false); Assert(p.Items.Count == 1); var j = new MemoryJournals(); var e = new DeepTuneEngine(b, j); var result = e.Apply(p, null); Assert(result.Applied == 1 && !b.Read(s).Running); Assert(e.Restore(result.GroupId, null) == 1 && b.Read(s).Running && b.Read(s).StartType == 4); });
         Test("disabled stopped optional services are not offered again", () => { var s = Service(); s.StartType = 4; s.Enabled = s.Running = s.Delayed = false; var b = new ServiceGraph(s); Assert(DeepTunePlan.Build(b.Scan(Unused()), Unused(), false, false, false).Items.Count == 0); });
         Test("a disabled running dependent is stopped before its provider", () => { var b = Graph(); var s = b.States.Values.Single(i => i.Target == "HomeGroupProvider"); s.StartType = 4; s.Enabled = s.Delayed = false; var e = new DeepTuneEngine(b, new MemoryJournals()); var r = e.Apply(DeepTunePlan.Build(b.Scan(Unused()), Unused(), false, false, false), null); Assert(r.Applied == 2 && b.Writes[0] == "disable:HomeGroupProvider"); });

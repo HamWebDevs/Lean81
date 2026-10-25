@@ -31,7 +31,7 @@ namespace Lean81
                 var appNote = new Label { Text = request.Apps.Count == 0 ? "No recognized background companions match the unused categories. Browsers, Windows and foreground families are kept." : "Uncheck any app you need. Closing can interrupt sync, downloads, calls, music or unsaved app state. RAM working sets can include shared pages." };
                 var appActions = new FlowLayoutPanel();
                 appActions.Controls.Add(ActionButton("Keep all apps", (s, e) => { grid.EndEdit(); foreach (DataGridViewRow row in grid.Rows) row.Cells[0].Value = false; }));
-                var force = new CheckBox { Text = "Force close selected tray / helper processes if normal close fails", AutoSize = true, Margin = new Padding(0, 9, 0, 0) };
+                var force = new CheckBox { Text = "Force close selected apps if normal close fails (includes tray / helpers)", AutoSize = true, Margin = new Padding(0, 9, 0, 0) };
                 Rows(appsBody, new Control[] { appNote, grid, appActions }, 52, -1, 45);
                 var options = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false };
                 options.Controls.Add(force);
@@ -67,6 +67,7 @@ namespace Lean81
         async Task ApplySession(TuneSessionRequest request)
         {
             if (request.Settings.Items.Count != 0 && !backend.IsAdministrator) { Elevate(); return; }
+            lastSession = null;
             captureCancel = new CancellationTokenSource(); SetBusy(true, "Starting the reviewed tune…");
             // Keep configuration controls locked during writes. Closing the window
             // cancels observations and remaining app actions, never a setting write.
@@ -95,6 +96,22 @@ namespace Lean81
             foreach (string name in new[] { "Resource", "Before", "After", "Observed difference" }) grid.Columns.Add(name, name);
             grid.Columns[0].FillWeight = 24; grid.Columns[1].FillWeight = grid.Columns[2].FillWeight = 17; grid.Columns[3].FillWeight = 42;
             if (lastSession != null) foreach (var row in TuneReadings.Compare(lastSession.Before, lastSession.After)) grid.Rows.Add(row.Name, row.Before, row.After, row.Difference);
+            var tabs = new TabControl(); var observations = new TabPage("Observations"); var remaining = new TabPage("Remaining load"); tabs.TabPages.Add(observations); tabs.TabPages.Add(remaining); observations.Controls.Add(grid);
+            var remainingBody = new Panel { Dock = DockStyle.Fill }; remaining.Controls.Add(remainingBody);
+            var processGrid = Grid(); processGrid.ReadOnly = true;
+            foreach (string name in new[] { "Process / PID", "Peak CPU", "RAM MiB", "I/O MiB/s" }) processGrid.Columns.Add(name, name);
+            processGrid.Columns[0].FillWeight = 42; processGrid.Columns[1].FillWeight = 18; processGrid.Columns[2].FillWeight = processGrid.Columns[3].FillWeight = 20;
+            var tools = new FlowLayoutPanel(); tools.Controls.Add(new Label { Text = "After-check leaders · sort", AutoSize = true, Padding = new Padding(0, 7, 8, 0) });
+            var sort = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 145, Margin = new Padding(0, 4, 8, 0) }; sort.Items.AddRange(new object[] { "CPU", "Working-set RAM", "Read/write I/O" }); sort.SelectedIndex = 0; tools.Controls.Add(sort);
+            Action populate = () =>
+            {
+                processGrid.Rows.Clear();
+                var leaders = ResourceAnalysis.Processes(lastSession == null ? null : lastSession.After);
+                foreach (var process in leaders.OrderByDescending(p => sort.SelectedIndex == 0 ? p.PeakCpu : sort.SelectedIndex == 1 ? p.PeakWorkingSet : p.PeakIo).Take(20))
+                    processGrid.Rows.Add(process.Name + " / " + process.Pid, process.PeakCpu.ToString("0.0", CultureInfo.InvariantCulture) + "%", (process.PeakWorkingSet / 1048576).ToString("0.0", CultureInfo.InvariantCulture), process.HasIo ? (process.PeakIo / 1048576).ToString("0.0", CultureInfo.InvariantCulture) : "Unavailable");
+            };
+            sort.SelectedIndexChanged += (s, e) => populate(); populate();
+            Rows(remainingBody, new Control[] { tools, processGrid }, 40, -1);
             var details = new TextBox { Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical,
                 Text = lastSession == null ? "Deep tune combines saved configuration changes with reviewed companion closure. You can turn off its short resource checks in the review. Results stay in memory for this session; recovery receipts persist." : lastSession.Details() };
             var actions = new FlowLayoutPanel { WrapContents = true };
@@ -109,8 +126,9 @@ namespace Lean81
                 catch (Exception ex) { SetBusy(false, "Restoration stopped · inspect Recovery"); Error(ex); }
             });
             restore.Enabled = lastSession != null && lastSession.Settings != null && lastSession.Settings.Receipts.Count != 0 && !lastSession.Restored; actions.Controls.Add(restore);
+            actions.Controls.Add(ActionButton("Running apps", (s, e) => ShowPage(13)));
             actions.Controls.Add(ActionButton("Recovery", (s, e) => ShowPage(7)));
-            Rows(body, new Control[] { summary, grid, details, actions }, 42, 182, -1, 48);
+            Rows(body, new Control[] { summary, tabs, details, actions }, 42, 210, -1, 48);
         }
         internal void SmokeSessionScreenshots(string folder)
         {
@@ -121,7 +139,13 @@ namespace Lean81
             if (ReviewSession(request, Path.Combine(folder, "deep-review.png")) || request.Force || request.Apps.Count != appCount) throw new InvalidOperationException("Cancelled tune review mutated its request.");
             lastSession = new TuneSessionEngine(backend, journals, runningBackend, t => CaptureResult.Demo(), t => { }).Run(request, CancellationToken.None, null);
             if (lastSession.Status != "Applied" || lastSession.Settings == null || lastSession.Settings.Applied != settings.Items.Count || lastSession.Apps.Any(a => !a.Closed)) throw new InvalidOperationException("Combined tune did not complete.");
+            status.Text = lastSession.Summary();
             foreach (var size in new[] { new Size(1080, 700), new Size(980, 620) }) { ClientSize = size; ShowPage(14); Refresh(); ValidateSmokeLayout(); SaveScreenshot(Path.Combine(folder, size.Width == 980 ? "tune-result-small.png" : "tune-result.png")); }
+            var resultTabs = Descendants(content).OfType<TabControl>().Single(); resultTabs.SelectedIndex = 1;
+            var resultSort = Descendants(content).OfType<ComboBox>().Single(); resultSort.SelectedIndex = 1;
+            var resultGrid = Descendants(resultTabs.TabPages[1]).OfType<DataGridView>().Single();
+            if (!Convert.ToString(resultGrid.Rows[0].Cells[0].Value, CultureInfo.InvariantCulture).StartsWith("IdleMemoryApp", StringComparison.Ordinal)) throw new InvalidOperationException("Memory-heavy after-check processes are missing from the result.");
+            Refresh(); ValidateSmokeLayout(); SaveScreenshot(Path.Combine(folder, "tune-remaining-load.png"));
             new DeepTuneEngine(backend, journals).Restore(lastSession.Settings.GroupId, null); lastSession.Restored = true;
         }
         static UsageProfile UnusedProfile() { return Profiles.AllUnused(); }

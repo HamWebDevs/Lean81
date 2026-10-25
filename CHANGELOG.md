@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0-rc.1 — candidate
+
+- Combine deep-tune settings and selected running-companion closure in one review. Individual app checkboxes, keep-all and explicit force-close remain available.
+- Recheck app identity/foreground state before settings, apply saved settings first, and skip closure when settings fail. Cancellation leaves completed work in recovery.
+- Show per-action results, direct tune-group restoration and optional short CPU/RAM/disk/commit observations inside Lean81, with coverage and power checks instead of an invented performance score.
+- Offer already-disabled but still-running optional services, protect running disabled dependents, and restore both start type and running state.
+- Add isolated orchestration/cancellation/measurement tests and a disposable native service fixture. Keep physical Windows 8.1 validation as a release gate.
+
 ## 1.1.0
 
 - Make Deep tune the starting page and add a maximum-reduction browser/cloud-gaming preset.

@@ -1,5 +1,15 @@
 # Compatibility
 
+## 1.2 candidate additions
+
+The combined tune applies configuration changes before closing selected companions, and skips closure on a settings failure. App identity and foreground state are checked before the settings pass and again by the native backend at closure. Cancellation stops observations and remaining app actions; setting writes are allowed to finish and retain their receipts. Results/short readings stay in memory; configuration recovery persists.
+
+Optional observations reuse the same native resource reader for about eight seconds on each side with a two-second settling wait. Each compared resource needs at least three valid intervals, six seconds and 80% coverage in complete observations. Power source must be known and unchanged; demo and real readings cannot mix. This is a short observation of an uncontrolled workload, not a benchmark or proof of causality. Missing counters are unknown. Remaining process load reuses those after-check samples and performs no continuous polling.
+
+Already-disabled but running optional services are actionable. Disabled dependents that are not stopped still protect their providers. To restore an original disabled/running state, the native primitive temporarily sets Manual, starts the service, and always attempts to put Disabled back in a finally block. Failures remain reviewable journal states. The isolated native test installs, starts, stops, restores and removes only a uniquely named compiled fixture service on ephemeral CI; installed OS/application services are never modified by tests.
+
+Service semantics: https://learn.microsoft.com/en-us/windows/win32/api/winsvc/nf-winsvc-changeserviceconfigw and https://learn.microsoft.com/en-us/windows/win32/services/stopping-a-service
+
 Lean81 is C# 5 targeting **.NET Framework 4.5.1** and Windows 8.1. Windows 8.1 includes that framework. The portable executable is AnyCPU and can run as a 32-bit or 64-bit process; it inspects the corresponding machine Run registry views explicitly. No Python or browser engine is used.
 
 Builds use Microsoft's `Microsoft.NETFramework.ReferenceAssemblies.net451` version 1.0.3, checked against a pinned SHA256. These are build-time files and are not shipped in the portable package. Compiling against these references prevents accidental dependencies on newer managed APIs; it does not prove behavior on an old Windows installation.
@@ -17,7 +27,7 @@ Windows 8.1 is no longer supported by Microsoft. Lean81 does not make the operat
 
 - Startup changes cover string values in HKCU Run and HKLM Run (32/64-bit views). RunOnce and StartupApproved metadata are not modified. Version 1.1 adds bounded startup-folder shortcut control as described below. A registered Run entry may already be blocked by Windows Task Manager.
 - Scheduled tasks are bounded to 512 inventory items in total and 12 folder levels. Hidden tasks are included where accessible; Microsoft/system, recognized security and hardware tasks are inspection-only. The task's author, path and XML content inform conservative protection heuristics; these are not a software trust/signature verifier.
-- Optional services are a fixed allowlist. A service with a non-disabled dependent is kept. Some devices have OEM dependencies not visible to Windows service dependency checks; review each tradeoff and test features after a change.
+- Optional services are a fixed allowlist. A service with a non-disabled or still-running dependent is kept unless that dependent is also reviewed in Deep tune. Some devices have OEM dependencies not visible to Windows service dependency checks; review each tradeoff and test features after a change.
 - App inventory reads traditional uninstall registry entries. Store apps and per-app background permissions are outside this release's scope. Use Programs and Features to uninstall apps yourself.
 - CPU capture observes two-second intervals, normalizes process CPU across all logical processors, and reports up to 20 accessible CPU, working-set, private-memory and I/O leaders per sample. Inaccessible, newly started or short-lived processes may be missed. Observing CPU uses a small amount of CPU itself; the trace records observer CPU time. No wake-delay probe is present.
 - No improvement percentage is promised. A background item can be idle, and disabling prefetch may slow launches. Compare the same workload with the same power state.

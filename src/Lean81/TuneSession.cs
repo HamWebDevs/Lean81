@@ -32,6 +32,7 @@ namespace Lean81
             if (Before != null && Before.Synthetic || After != null && After.Synthetic) lines.Add("SYNTHETIC DEMO · invented observations; no Windows changes.");
             if (Error != null) lines.Add("Stopped: " + Error);
             if (Restored) lines.Add("The settings in this result have been restored. These observations describe the earlier tune.");
+            lines.Add(TuneReadings.NextSteps(After));
             if (Settings != null)
             {
                 lines.Add("Recovery group: " + Settings.GroupId);
@@ -105,7 +106,7 @@ namespace Lean81
                     result.Settings = new DeepTuneEngine(backend, journals).Apply(request.Settings, progress);
                     if (result.Settings.Status != "Applied") { result.Status = "Needs review"; result.Notes.Add("App closure was skipped because the settings pass did not finish. Inspect Recovery before trying again."); return result; }
                 }
-                foreach (var app in ready)
+                foreach (var app in ready.OrderBy(a => System.IO.Path.GetFileName(a.Path).IndexOf("helper", StringComparison.OrdinalIgnoreCase) >= 0 ? 1 : 0))
                 {
                     token.ThrowIfCancellationRequested();
                     if (progress != null) progress("Closing reviewed companion: " + app.Name);
@@ -139,13 +140,25 @@ namespace Lean81
                 total += sample.dt; var number = ResourceAnalysis.Number(sample.metrics, key, maximum);
                 if (number.HasValue) { known += sample.dt; weighted += sample.dt * number.Value; count++; }
             }
-            return count >= 3 && total >= 6 && known >= 6 && known / total >= 0.8 ? (double?)(weighted / known) : null;
+            return count >= 3 && total >= 6 && known >= 6 && known / total >= 0.8 && Product.Finite(total) && Product.Finite(weighted) ? (double?)(weighted / known) : null;
         }
         static string Power(CaptureResult capture)
         {
-            if (capture == null) return null;
-            var values = capture.Samples.Select(s => s.metrics != null && s.metrics.ContainsKey("power") ? Convert.ToString(s.metrics["power"], CultureInfo.InvariantCulture) : "unknown").Distinct().ToArray();
+            if (capture == null || capture.Samples == null) return null;
+            var values = capture.Samples.Select(s => s != null && s.metrics != null && s.metrics.ContainsKey("power") ? Convert.ToString(s.metrics["power"], CultureInfo.InvariantCulture) : "unknown").Distinct().ToArray();
             return values.Length == 1 && (values[0] == "ac" || values[0] == "battery") ? values[0] : null;
+        }
+        public static string NextSteps(CaptureResult after)
+        {
+            if (after == null) return "No after-tune observation. Action results remain available; resource pressure is unknown.";
+            var lines = new List<string>(); var cpu = Value(after, "cpu_pct", 100); var available = Value(after, "memory_available_pct", 100); var disk = Value(after, "disk_busy_pct", 100); var commit = Value(after, "commit_pct", 100);
+            if (cpu >= 80) lines.Add("CPU remains busy in the short after-check. Inspect Remaining load. Close unused browser tabs or review the workload; a demanding browser session can exceed an older CPU's capacity.");
+            if (available < 15) lines.Add("Available RAM remains low. Save work and close unused tabs or apps. The Remaining load tab includes memory-heavy processes even if their CPU is idle.");
+            if (commit >= 90) lines.Add("Commit is near its limit. Save work and close unused apps. Keep Windows' paging file enabled.");
+            if (disk >= 80) lines.Add("Aggregate disk activity remains high. Remaining load shows process I/O, which also includes network/device operations and cannot identify the disk culprit by itself. Startup changes take effect at future launches.");
+            if (cpu < 80 && available >= 15 && disk < 80 && commit < 90) lines.Add("No sustained resource pressure in this short after-check. This can miss spikes and does not establish a speed increase.");
+            if (!cpu.HasValue || !available.HasValue || !disk.HasValue || !commit.HasValue) lines.Add("Some after-check resource readings are missing or incomplete. Their pressure remains unknown.");
+            return String.Join(Environment.NewLine + Environment.NewLine, lines);
         }
         public static IList<TuneMetric> Compare(CaptureResult before, CaptureResult after)
         {

@@ -25,7 +25,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $spec = Get-Content 'release/preview.json' -Raw | ConvertFrom-Json
-          if ($spec.version -notmatch '^\d+\.\d+\.\d+$' -or $spec.source_sha -notmatch '^[0-9a-f]{40}$' -or $spec.gui_reviewed -ne $true) { throw 'Unsupported or unreviewed release request.' }
+          if ($spec.version -notmatch '^\d+\.\d+\.\d+(-rc\.[1-9]\d*)?$' -or $spec.source_sha -notmatch '^[0-9a-f]{40}$' -or $spec.gui_reviewed -ne $true) { throw 'Unsupported or unreviewed release request.' }
           git merge-base --is-ancestor $spec.source_sha HEAD
           if ($LASTEXITCODE -ne 0) { throw 'Reviewed source is not an ancestor of this request.' }
           $runs = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs?head_sha=$($spec.source_sha)&per_page=30" | ConvertFrom-Json
@@ -34,6 +34,7 @@ jobs:
           if ($green.Count -eq 0) { throw 'Reviewed source lacks successful Windows checks.' }
           $channel = if ($spec.PSObject.Properties.Name -contains 'channel') { $spec.channel } else { 'preview' }
           if ($channel -notin @('preview', 'stable')) { throw 'Unsupported release channel.' }
+          if ($channel -eq 'stable' -and $spec.version -match '-') { throw 'Release candidates can only be published as previews.' }
           $tag = 'v' + $spec.version
           $existing = git ls-remote --tags origin "refs/tags/$tag"
           if ($LASTEXITCODE -ne 0 -or $existing) { throw 'Cannot publish: tag exists or remote lookup failed. Existing releases are never overwritten.' }
@@ -58,8 +59,8 @@ jobs:
           $head = (git rev-parse HEAD).Trim()
           if ($LASTEXITCODE -ne 0 -or $head -ne $env:LEAN81_SOURCE) { throw 'Source checkout mismatch.' }
           $version = $env:LEAN81_VERSION
-          $exeVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path (Get-Location).Path 'artifacts/Lean81.exe')).FileVersion
-          if ($exeVersion -ne ($version + '.0')) { throw 'Release request and executable version differ.' }
+          $metadata = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path (Get-Location).Path 'artifacts/Lean81.exe'))
+          if ($metadata.FileVersion -ne (($version -split '-')[0] + '.0') -or $metadata.ProductVersion -ne $version) { throw 'Release request and executable version differ.' }
           $files = @('artifacts/Lean81.exe', "artifacts/Lean81-$version-portable.zip", "artifacts/Lean81-$version-source.zip", 'artifacts/SHA256SUMS.txt')
           foreach ($file in $files) { if (!(Test-Path $file)) { throw "Missing release asset: $file" } }
           $title = "Lean81 $version"

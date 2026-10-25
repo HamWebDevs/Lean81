@@ -113,16 +113,16 @@ namespace Lean81
                 Check(ChangeServiceConfig(service, UInt32.MaxValue, restartDisabled ? 3 : restore ? (uint)original.StartType : 4, UInt32.MaxValue, null, null, IntPtr.Zero, null, null, null, null));
                 try
                 {
-                if (restore && original.StartType == 2) { int delayed = original.Delayed ? 1 : 0; Check(ChangeServiceConfig2(service, 3, ref delayed)); }
-                controller.Refresh();
-                if (!restore && controller.Status == ServiceControllerStatus.Running)
-                {
-                    // ControlService affects this one service; ServiceController.Stop() would recurse.
-                    ServiceStatus status; Check(ControlService(service, 1, out status));
-                    controller.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(15));
-                }
-                if (restore && original.Running && controller.Status == ServiceControllerStatus.Stopped)
-                { controller.Start(); controller.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(15)); }
+                    if (restore && original.StartType == 2) { int delayed = original.Delayed ? 1 : 0; Check(ChangeServiceConfig2(service, 3, ref delayed)); }
+                    controller.Refresh();
+                    if (!restore && controller.Status == ServiceControllerStatus.Running)
+                    {
+                        // ControlService affects this one service; ServiceController.Stop() would recurse.
+                        ServiceStatus status; Check(ControlService(service, 1, out status));
+                        controller.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(15));
+                    }
+                    if (restore && original.Running && controller.Status == ServiceControllerStatus.Stopped)
+                    { controller.Start(); controller.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(15)); }
                 }
                 finally
                 {
