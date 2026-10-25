@@ -22,7 +22,11 @@ namespace Lean81
             new ServiceOption("HomeGroupProvider", "homegroup", "HomeGroup provider", "HomeGroup discovery/sharing features will be unavailable."),
             new ServiceOption("WMPNetworkSvc", "media", "Media-player network sharing", "Other devices will no longer discover shared Windows Media Player libraries."),
             new ServiceOption("CscService", "offline", "Offline network files", "Cached offline access to network files will be unavailable."),
-            new ServiceOption("SysMain", "prefetch", "Application preloading / Superfetch", "Disabling preloading may slow application launches. Measure the tradeoff on this laptop.")
+            new ServiceOption("SysMain", "prefetch", "Application preloading / Superfetch", "Disabling preloading may slow application launches. Measure the tradeoff on this laptop."),
+            new ServiceOption("stisvc", "scanning", "Scanner and camera image acquisition", "Scanner and camera software using Windows Image Acquisition may stop working. This is separate from printing."),
+            new ServiceOption("WpdBusEnum", "portable", "Portable-device library synchronization", "Portable media devices may not synchronize or be discovered by some applications. Restore before using affected phone or media-device software."),
+            new ServiceOption("WerSvc", "errors", "Windows error-reporting service", "Windows error reports and associated diagnostic assistance may be unavailable. This does not disable antivirus or updates."),
+            new ServiceOption("TrkWks", "links", "Tracking links to moved files", "Some shortcuts and linked files may no longer follow files moved between locations. Existing files are not removed.")
         };
         static readonly Regex Protected = new Regex(@"(?i)(defender|securityhealth|antivirus|msascui|mpcmdrun|smartscreen|avast|avira|bitdefender|kaspersky|malwarebytes|mcafee|norton|symantec|sophos|webroot|trendmicro|eset|syntp|etdctrl|touchpad|hotkey|igfxtray|hkcmd)", RegexOptions.Compiled);
         public static bool IsProtectedText(string value) { return Protected.IsMatch(value ?? ""); }
@@ -45,6 +49,14 @@ namespace Lean81
                 if (!restoring && (state.Dependents ?? new string[0]).Length != 0)
                     throw new InvalidOperationException("A non-disabled dependent service needs this service. No dependent services will be stopped.");
             }
+            else if (state.Kind == "setting")
+            {
+                int number;
+                if (state.Scope != "user" || !state.Exists || !DesktopSettings.Options.Any(o => o.Id == state.Target)
+                    || !(state.ValueKind == 0 && state.Value == null || state.ValueKind == 4 && Int32.TryParse(state.Value, out number)))
+                    throw new InvalidOperationException("This desktop setting is outside the fixed user-setting allowlist.");
+                if (state.Enabled != (state.ValueKind == 0 || state.Value != "0")) throw new InvalidOperationException("Desktop setting state does not match its registry value.");
+            }
             else if (state.Kind == "startup")
             {
                 if (!new[] { "user", "machine32", "machine64" }.Contains(state.Scope) || state.Target.IndexOf('\\') >= 0 || state.Target.IndexOf('/') >= 0)
@@ -66,6 +78,7 @@ namespace Lean81
         {
             if (!state.Exists) return "Absent";
             if (state.Kind == "service") return (state.StartType == 4 ? "Disabled" : state.StartType == 2 ? "Automatic" : "Manual") + (state.Running ? " / running" : " / stopped");
+            if (state.Kind == "setting") return state.ValueKind == 0 ? "Windows default" : state.Enabled ? "Enabled (" + state.Value + ")" : "Reduced (0)";
             return state.Enabled ? "Enabled" : "Disabled";
         }
     }

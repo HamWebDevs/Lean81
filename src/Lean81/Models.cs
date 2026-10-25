@@ -10,7 +10,7 @@ namespace Lean81
 {
     public static class Product
     {
-        public const string Version = "0.3.0";
+        public const string Version = "1.0.0";
         public const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         public const int MaxItems = 512;
         public const int MaxChanges = 40;
@@ -42,9 +42,14 @@ namespace Lean81
         public bool MediaSharing { get; set; }
         public bool OfflineFiles { get; set; }
         public bool Prefetch { get; set; }
+        public bool Scanning { get; set; }
+        public bool PortableDevices { get; set; }
+        public bool ErrorReporting { get; set; }
+        public bool LinkTracking { get; set; }
         public UsageProfile()
         {
             Printing = Bluetooth = IndexedSearch = TouchKeyboard = HomeGroup = MediaSharing = OfflineFiles = Prefetch = true;
+            Scanning = PortableDevices = ErrorReporting = LinkTracking = true;
         }
         public bool Uses(string feature)
         {
@@ -58,6 +63,10 @@ namespace Lean81
                 case "media": return MediaSharing;
                 case "offline": return OfflineFiles;
                 case "prefetch": return Prefetch;
+                case "scanning": return Scanning;
+                case "portable": return PortableDevices;
+                case "errors": return ErrorReporting;
+                case "links": return LinkTracking;
                 default: return true;
             }
         }
@@ -93,6 +102,7 @@ namespace Lean81
             if (Kind == "startup") { copy.Exists = false; copy.Enabled = false; copy.Value = null; copy.ValueKind = 0; }
             else if (Kind == "service") { copy.StartType = 4; copy.Enabled = false; copy.Running = false; copy.Delayed = false; }
             else if (Kind == "task") copy.Enabled = false;
+            else if (Kind == "setting") { copy.Enabled = false; copy.Value = "0"; copy.ValueKind = 4; }
             else throw new InvalidOperationException("Unsupported change kind.");
             return copy;
         }

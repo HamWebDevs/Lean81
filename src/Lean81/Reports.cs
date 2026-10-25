@@ -55,6 +55,9 @@ namespace Lean81
                 Row(html, "Average CPU", N(capture.AverageCpu) + "%"); Row(html, "Peak sampled CPU", N(capture.PeakCpu) + "%");
                 Row(html, "Time at 80%+ CPU", N(capture.BusySeconds) + " seconds");
                 Row(html, "Average available physical memory", capture.AverageAvailableMemory.HasValue ? N(capture.AverageAvailableMemory.Value) + "%" : "Unavailable");
+                Row(html, "Average aggregate physical-disk busy", capture.AverageDiskBusy.HasValue ? N(capture.AverageDiskBusy.Value) + "% (" + capture.ValidDiskSamples + "/" + capture.Samples + " samples)" : "Unavailable (not recorded by older versions or counters unavailable)");
+                Row(html, "Peak committed memory / commit limit", capture.PeakCommit.HasValue ? N(capture.PeakCommit.Value) + "% (" + capture.ValidCommitSamples + "/" + capture.Samples + " samples)" : "Unavailable");
+                Row(html, "Peak nonpaged kernel pool", capture.PeakNonpagedBytes.HasValue ? N(capture.PeakNonpagedBytes.Value / 1048576) + " MiB" : "Unavailable");
                 Row(html, "Elapsed / observed CPU time", N(capture.Duration) + " / " + N(capture.ObservedSeconds) + " seconds");
                 Row(html, "Valid CPU samples", capture.ValidCpuSamples + " / " + capture.Samples); Row(html, "Power source", capture.Power);
                 Row(html, "Completion", capture.Complete ? "Completed" : "Interrupted or error"); Row(html, "Observer CPU cost", N(capture.ObserverCpu) + " CPU seconds");
@@ -66,7 +69,7 @@ namespace Lean81
             html.Append("<p class=\"note\">Two-second sampling can miss short spikes and inaccessible processes. There is no input-latency or wake-delay measurement. Matching recorded conditions do not prove matching activity or causality.</p></section>");
             Device(html, device);
             html.Append("<section id=\"inventory\"><h2>Background inventory</h2><div class=\"table-wrap\"><table class=\"wide\"><caption>Items observed in the scan</caption><thead><tr><th scope=\"col\">Category</th><th scope=\"col\">Found</th><th scope=\"col\">Selectable for review</th><th scope=\"col\">Kept / inspection only</th></tr></thead><tbody>");
-            foreach (var kind in new[] { "startup", "task", "service" })
+            foreach (var kind in new[] { "startup", "task", "service", "setting" })
             {
                 int total = scan.Items.Count(i => i.Kind == kind), selectable = scan.Items.Count(i => i.Kind == kind && i.CanChange);
                 html.Append("<tr><th scope=\"row\">").Append(H(kind)).Append("</th><td>").Append(total).Append("</td><td>").Append(selectable).Append("</td><td>").Append(total - selectable).Append("</td></tr>");
@@ -104,6 +107,8 @@ namespace Lean81
             Delta(html, "Time at 80%+ CPU", baseline.BusySeconds, current.BusySeconds, result.BusyDifference, " s", " s");
             if (result.MemoryDifference.HasValue) Delta(html, "Available physical memory", baseline.AverageAvailableMemory.Value, current.AverageAvailableMemory.Value, result.MemoryDifference.Value, "%", " pp");
             else html.Append("<tr><th scope=\"row\">Available physical memory</th><td colspan=\"3\">Difference unavailable: a capture has no memory reading.</td></tr>");
+            if (result.DiskDifference.HasValue) Delta(html, "Aggregate physical-disk busy", baseline.AverageDiskBusy.Value, current.AverageDiskBusy.Value, result.DiskDifference.Value, "%", " pp");
+            else html.Append("<tr><th scope=\"row\">Aggregate physical-disk busy</th><td colspan=\"3\">Difference unavailable: disk coverage is missing or incomplete.</td></tr>");
             html.Append("</tbody></table></div><p class=\"note\">").Append(H(result.Explanation)).Append("</p>");
         }
         static void Delta(StringBuilder html, string title, double before, double after, double difference, string unit, string differenceUnit)

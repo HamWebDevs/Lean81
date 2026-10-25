@@ -81,5 +81,5 @@ static partial class Tests
         Test("nonadmin recovery assessment is refused", () => { var b = new Fake(Startup()) { Admin = false }; Throws(() => new ChangeEngine(b, new MemoryJournals()).Inspect(Guid.NewGuid().ToString("N"))); Assert(b.Writes == 0); });
         Test("tool catalog only contains fixed Windows system commands", () => Assert(WindowsTools.All.Select(t => t.Id).Distinct().Count() == WindowsTools.All.Length && WindowsTools.All.All(t => !t.File.Contains("\\") && !t.File.Contains("/") && !t.Args.Contains("--") && (t.Args.Length == 0 || t.Args.EndsWith(".cpl", StringComparison.Ordinal)))));
     }
-    static bool[] FeatureFlags(UsageProfile p) { return new[] { p.Printing, p.Bluetooth, p.IndexedSearch, p.TouchKeyboard, p.HomeGroup, p.MediaSharing, p.OfflineFiles, p.Prefetch }; }
+    static bool[] FeatureFlags(UsageProfile p) { return new[] { p.Printing, p.Bluetooth, p.IndexedSearch, p.TouchKeyboard, p.HomeGroup, p.MediaSharing, p.OfflineFiles, p.Prefetch, p.Scanning, p.PortableDevices, p.ErrorReporting, p.LinkTracking }; }
 }

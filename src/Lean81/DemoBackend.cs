@@ -17,6 +17,7 @@ namespace Lean81
             Add(new ItemState { Kind = "task", Target = @"\DemoApp\Daily updater", Scope = "machine", Exists = true, Enabled = true, Definition = Product.Hash("synthetic updater") });
             Add(new ItemState { Kind = "task", Target = @"\Microsoft\Windows\Maintenance", Scope = "machine", Exists = true, Enabled = true, Definition = Product.Hash("synthetic system task") });
             foreach (var s in Policy.Services) Add(new ItemState { Kind = "service", Target = s.Name, Scope = "machine", Exists = true, Enabled = true, StartType = 2, Running = true, Definition = Product.Hash("synthetic " + s.Name) });
+            foreach (var s in DesktopSettings.Options) Add(new ItemState { Kind = "setting", Target = s.Id, Scope = "user", Exists = true, Enabled = true, ValueKind = 0 });
         }
         void Add(ItemState state) { states.Add(state.Identity(), state); }
         public ItemState Read(ItemState identity) { return states[identity.Identity()].Copy(); }
@@ -30,10 +31,11 @@ namespace Lean81
             {
                 var option = Policy.Services.FirstOrDefault(s => s.Name == state.Target);
                 bool can = state.Exists && state.Enabled; try { Policy.Validate(state, profile, false); } catch { can = false; }
-                report.Items.Add(new ScanItem { Id = Product.Hash(state.Identity()), Name = option == null ? state.Target.Split('\\').Last() : option.Title,
+                var desktop = DesktopSettings.Options.FirstOrDefault(s => s.Id == state.Target);
+                report.Items.Add(new ScanItem { Id = Product.Hash(state.Identity()), Name = desktop != null ? desktop.Title : option == null ? state.Target.Split('\\').Last() : option.Title,
                     Kind = state.Kind, Scope = state.Scope, Before = state.Copy(), Status = Policy.StateLabel(state), CanChange = can, Suggested = can && option != null,
                     Detail = can ? "Synthetic example. Review before selecting." : "Kept by your profile or protected by policy.",
-                    Tradeoff = option == null ? "Automatic startup will stop; manual launch remains available." : option.Tradeoff });
+                    Tradeoff = desktop != null ? desktop.Tradeoff : option == null ? "Automatic startup will stop; manual launch remains available." : option.Tradeoff });
             }
             report.Apps.Add(new InstalledApp { Name = "Example photo editor", Publisher = "Demo software", Version = "2.4", Note = "Review manually in Programs and Features" });
             report.Apps.Add(new InstalledApp { Name = "Example trial suite", Publisher = "Demo software", Version = "1.0", Note = "Synthetic inventory entry" });
