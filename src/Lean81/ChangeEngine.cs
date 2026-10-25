@@ -31,7 +31,7 @@ namespace Lean81
                 return result;
             }
         }
-        public ChangeReceipt Apply(IList<ScanItem> selection, UsageProfile profile, Action<string> progress)
+        public ChangeReceipt Apply(IList<ScanItem> selection, UsageProfile profile, Action<string> progress, string groupId = null, int groupSequence = 0)
         {
             if (!backend.IsAdministrator) throw new InvalidOperationException("Enable administrator mode to make changes.");
             if (selection == null || selection.Count == 0 || selection.Count > Product.MaxChanges) throw new InvalidOperationException("Select between 1 and 40 supported changes.");
@@ -39,7 +39,8 @@ namespace Lean81
                 throw new InvalidOperationException("Selection contains unsupported or duplicate changes.");
             using (journals.Lock())
             {
-                var receipt = new ChangeReceipt { MachineScope = backend.MachineScope };
+                var receipt = new ChangeReceipt { MachineScope = backend.MachineScope, GroupId = groupId, GroupSequence = groupSequence };
+                Guid group; if (groupId != null && !Guid.TryParseExact(groupId, "N", out group) || groupId == null && groupSequence != 0 || groupId != null && (groupSequence < 1 || groupSequence > 128)) throw new InvalidOperationException("Invalid tune group identity.");
                 foreach (var item in selection)
                 {
                     Policy.Validate(item.Before, profile, false);
@@ -124,6 +125,8 @@ namespace Lean81
                 throw new InvalidOperationException("Unsupported receipt or different machine/user scope.");
             if (!new[] { "Prepared", "Applying", "Applied", "Restoring", "Restored", "Needs review" }.Contains(receipt.Status))
                 throw new InvalidOperationException("Unsupported receipt status.");
+            Guid group;
+            if (receipt.GroupId != null && !Guid.TryParseExact(receipt.GroupId, "N", out group) || receipt.GroupId == null && receipt.GroupSequence != 0 || receipt.GroupId != null && (receipt.GroupSequence < 1 || receipt.GroupSequence > 128)) throw new InvalidOperationException("Invalid tune group identity.");
             var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var entry in receipt.Entries)
             {

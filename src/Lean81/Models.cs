@@ -10,7 +10,7 @@ namespace Lean81
 {
     public static class Product
     {
-        public const string Version = "1.0.0";
+        public const string Version = "1.1.0";
         public const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         public const int MaxItems = 512;
         public const int MaxChanges = 40;
@@ -46,10 +46,21 @@ namespace Lean81
         public bool PortableDevices { get; set; }
         public bool ErrorReporting { get; set; }
         public bool LinkTracking { get; set; }
+        public bool Telemetry { get; set; }
+        public bool MediaCenter { get; set; }
+        public bool Compatibility { get; set; }
+        public bool DiagnosticHelpers { get; set; }
+        public bool Themes { get; set; }
+        public bool AppUpdaters { get; set; }
+        public bool GameLaunchers { get; set; }
+        public bool CloudSync { get; set; }
+        public bool ChatApps { get; set; }
+        public bool MusicApps { get; set; }
         public UsageProfile()
         {
             Printing = Bluetooth = IndexedSearch = TouchKeyboard = HomeGroup = MediaSharing = OfflineFiles = Prefetch = true;
             Scanning = PortableDevices = ErrorReporting = LinkTracking = true;
+            Telemetry = MediaCenter = Compatibility = DiagnosticHelpers = Themes = AppUpdaters = GameLaunchers = CloudSync = ChatApps = MusicApps = true;
         }
         public bool Uses(string feature)
         {
@@ -67,6 +78,16 @@ namespace Lean81
                 case "portable": return PortableDevices;
                 case "errors": return ErrorReporting;
                 case "links": return LinkTracking;
+                case "telemetry": return Telemetry;
+                case "tv": return MediaCenter;
+                case "compatibility": return Compatibility;
+                case "diagnostics": return DiagnosticHelpers;
+                case "themes": return Themes;
+                case "updaters": return AppUpdaters;
+                case "launchers": return GameLaunchers;
+                case "sync": return CloudSync;
+                case "chat": return ChatApps;
+                case "music": return MusicApps;
                 default: return true;
             }
         }
@@ -86,6 +107,10 @@ namespace Lean81
         public bool Running { get; set; }
         public string Definition { get; set; }
         public string[] Dependents { get; set; }
+        public int FileAttributes { get; set; }
+        public string FileCreatedUtc { get; set; }
+        public string FileModifiedUtc { get; set; }
+        public string FileSecurity { get; set; }
         public ItemState() { Dependents = new string[0]; }
         public ItemState Copy() { return Product.Json().Deserialize<ItemState>(Product.Json().Serialize(this)); }
         public string Identity() { return Kind + "\n" + Scope + "\n" + Target; }
@@ -93,16 +118,21 @@ namespace Lean81
         {
             return Product.Hash(Product.Json().Serialize(new {
                 Kind, Target, Scope, Exists, Enabled, Value, ValueKind, StartType, Delayed, Running, Definition,
-                Dependents = (Dependents ?? new string[0]).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray()
+                // Dependents are a live eligibility observation, not changed settings.
+                // Every service write still rechecks them in native preflight.
+                Dependents = Kind == "service" ? new string[0] : (Dependents ?? new string[0]).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray(),
+                FileAttributes, FileCreatedUtc, FileModifiedUtc, FileSecurity
             }));
         }
         public ItemState Disabled()
         {
             var copy = Copy();
             if (Kind == "startup") { copy.Exists = false; copy.Enabled = false; copy.Value = null; copy.ValueKind = 0; }
+            else if (Kind == "startupfile") { copy.Exists = false; copy.Enabled = false; copy.Value = null; copy.ValueKind = 0; copy.Definition = null; copy.FileAttributes = 0; copy.FileCreatedUtc = copy.FileModifiedUtc = copy.FileSecurity = null; }
             else if (Kind == "service") { copy.StartType = 4; copy.Enabled = false; copy.Running = false; copy.Delayed = false; }
             else if (Kind == "task") copy.Enabled = false;
             else if (Kind == "setting") { copy.Enabled = false; copy.Value = "0"; copy.ValueKind = 4; }
+            else if (Kind == "power") { copy.Enabled = false; copy.Value = PowerPlans.HighPerformance; }
             else throw new InvalidOperationException("Unsupported change kind.");
             return copy;
         }
@@ -120,6 +150,7 @@ namespace Lean81
         public bool CanChange { get; set; }
         public bool Suggested { get; set; }
         public ItemState Before { get; set; }
+        public string Feature { get; set; }
     }
     public sealed class InstalledApp
     {
@@ -155,6 +186,8 @@ namespace Lean81
         public string Version { get; set; }
         public string CreatedUtc { get; set; }
         public string MachineScope { get; set; }
+        public string GroupId { get; set; }
+        public int GroupSequence { get; set; }
         public string Status { get; set; }
         public List<JournalEntry> Entries { get; set; }
         public ChangeReceipt()

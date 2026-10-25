@@ -57,12 +57,12 @@ namespace Lean81
         readonly Label status = new Label(); readonly List<Button> navigation = new List<Button>();
         readonly Button review = new Button();
         TableLayoutPanel pageLayout;
-        ScanReport report; int page; bool busy; CancellationTokenSource captureCancel;
+        ScanReport report; int page = 11; bool busy; CancellationTokenSource captureCancel;
         CaptureResult capture; CpuChart chart; Label captureStats;
-        static readonly string[] Pages = { "Overview", "Usage profile", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "Resource capture", "Recovery", "Device & storage", "Recommendations", "Help & tools", "Quick tune", "Desktop effects" };
+        static readonly string[] Pages = { "Overview", "Usage profile", "Startup apps", "Scheduled tasks", "Optional services", "Installed apps", "Resource capture", "Recovery", "Device & storage", "Recommendations", "Help & tools", "Deep tune", "Desktop effects", "Running apps" };
         public MainForm(IBackend backend, IJournalStore journals, bool demo)
         {
-            this.backend = backend; this.journals = journals; this.demo = demo;
+            this.backend = backend; this.journals = journals; this.demo = demo; runningBackend = demo ? (IRunningApps)new DemoRunningApps() : new WindowsRunningApps();
             preferences = demo ? null : WorkspaceStore.Local(); workspace = preferences == null ? new UserWorkspace() : preferences.Load(); Profiles.Copy(workspace.Profile, profile);
             preferencesNotice = preferences == null ? null : preferences.Warning;
             Text = "Lean81" + (demo ? " — Demo" : "") + " · " + Product.Version;
@@ -93,7 +93,7 @@ namespace Lean81
             sidebar.Dock = DockStyle.Fill; sidebar.Margin = Padding.Empty; content.Margin = Padding.Empty;
             shell.Controls.Add(sidebar, 0, 0); shell.SetRowSpan(sidebar, 2); shell.Controls.Add(content, 1, 0); shell.Controls.Add(footer, 1, 1); Controls.Add(shell);
             FormClosing += (s, e) => { if (busy) { closeWhenIdle = true; e.Cancel = true; if (captureCancel != null) captureCancel.Cancel(); status.Text = "Finishing the current operation before closing…"; } };
-            Shown += async (s, e) => await Scan(); ShowPage(0);
+            Shown += async (s, e) => await Scan(); ShowPage(page);
         }
         static Label LabelAt(string text, float size, FontStyle style = FontStyle.Regular)
         { return new Label { Text = text, AutoSize = false, ForeColor = style == FontStyle.Bold ? Ink : Muted, Font = new Font("Segoe UI", size, style), Dock = DockStyle.Top }; }
@@ -134,7 +134,7 @@ namespace Lean81
             pageLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Margin = Padding.Empty };
             pageLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); content.Controls.Add(pageLayout);
             for (int i = 0; i < navigation.Count; i++) { navigation[i].BackColor = i == page ? Color.FromArgb(44, 68, 85) : Ink; navigation[i].ForeColor = i == page ? Color.White : Color.FromArgb(202, 215, 224); }
-            if (index == 0) Overview(); else if (index == 1) Profile(); else if (index >= 2 && index <= 4) Inventory(index == 2 ? "startup" : index == 3 ? "task" : "service"); else if (index == 5) Apps(); else if (index == 6) CapturePage(); else if (index == 7) Recovery(); else if (index == 8) DevicePage(); else if (index == 9) RecommendationsPage(); else if (index == 10) ToolsPage(); else if (index == 11) QuickTunePage(); else Inventory("setting");
+            if (index == 0) Overview(); else if (index == 1) Profile(); else if (index >= 2 && index <= 4) Inventory(index == 2 ? "startup" : index == 3 ? "task" : "service"); else if (index == 5) Apps(); else if (index == 6) CapturePage(); else if (index == 7) Recovery(); else if (index == 8) DevicePage(); else if (index == 9) RecommendationsPage(); else if (index == 10) ToolsPage(); else if (index == 11) QuickTunePage(); else if (index == 12) Inventory("setting"); else RunningAppsPage();
             UpdateSelection();
         }
         void SetBusy(bool value, string message)
@@ -147,7 +147,7 @@ namespace Lean81
         async Task<bool> Scan()
         {
             if (busy) return false; bool complete = false; SetBusy(true, "Scanning startup entries, optional services, tasks and installed apps…");
-            try { report = await Task.Run(() => backend.Scan(profile)); device = await Task.Run(() => demo ? DeviceSnapshot.Demo() : DeviceSnapshot.Read()); choicesStale = false; selected.Clear(); ShowPage(page); SetBusy(false, "Scan complete · " + report.Items.Count + " items · " + report.Notes.Count + " notes" + (preferences != null && preferences.Warning != null ? " · preferences reset" : "")); complete = true; }
+            try { report = await Task.Run(() => backend.Scan(profile)); device = await Task.Run(() => demo ? DeviceSnapshot.Demo() : DeviceSnapshot.Read()); runningApps = await Task.Run(() => runningBackend.Scan()); choicesStale = false; selected.Clear(); ShowPage(page); SetBusy(false, "Scan complete · " + report.Items.Count + " items · " + report.Notes.Count + " notes" + (preferences != null && preferences.Warning != null ? " · preferences reset" : "")); complete = true; }
             catch (Exception ex) { SetBusy(false, "Scan could not finish"); Error(ex); }
             UpdateSelection(); return complete;
         }
@@ -181,7 +181,7 @@ namespace Lean81
             Action populate = () =>
             {
                 grid.Rows.Clear(); if (report == null) return;
-                foreach (var item in report.Items.Where(x => x.Kind == kind && (!selectable.Checked || !choicesStale && x.CanChange) && (x.Name + " " + x.Before.Target).IndexOf(search.Text, StringComparison.OrdinalIgnoreCase) >= 0).OrderByDescending(x => x.CanChange).ThenBy(x => x.Name))
+                foreach (var item in report.Items.Where(x => (x.Kind == kind || kind == "startup" && x.Kind == "startupfile") && (!selectable.Checked || !choicesStale && x.CanChange) && (x.Name + " " + x.Before.Target).IndexOf(search.Text, StringComparison.OrdinalIgnoreCase) >= 0).OrderByDescending(x => x.CanChange).ThenBy(x => x.Name))
                 {
                     string reason = choicesStale ? "Rescan after changing usage answers" : Profiles.FeatureReason(item, profile);
                     var row = grid.Rows[grid.Rows.Add(selected.ContainsKey(item.Id), item.Name, item.Scope, item.Status, reason)]; row.Tag = item; row.Cells[0].ReadOnly = choicesStale || !item.CanChange; row.Cells[4].ToolTipText = reason; row.Cells[1].ToolTipText = item.Name;
@@ -276,6 +276,16 @@ namespace Lean81
                 try { var checks = await Task.Run(() => new ChangeEngine(backend, journals).Inspect(receipt.Id)); detail.Text = String.Join(Environment.NewLine, checks.Select(c => c.Name + " · " + c.Status + " · current: " + c.Current + " · saved: " + c.Original)); }
                 catch (Exception ex) { Error(ex); } finally { SetBusy(false, "Recovery state check complete · no settings changed"); }
             }));
+            actions.Controls.Add(ActionButton("Restore tune group…", async (s, e) =>
+            {
+                if (busy || grid.SelectedRows.Count == 0) return; var receipt = grid.SelectedRows[0].Tag as ChangeReceipt;
+                if (receipt == null || receipt.GroupId == null) { status.Text = "Select a receipt created by Deep tune to restore its complete group."; return; }
+                var group = journals.List().Where(r => r.GroupId == receipt.GroupId).ToArray();
+                if (!ReviewDialog("Restore tune group", group.SelectMany(r => r.Entries).Select(x => x.Name + "\r\nOriginal: " + Policy.StateLabel(x.Original)).ToArray(), "Restore all settings from this tune, with service providers restored before their dependents. Independent edits stop the group check. Closed apps must be reopened manually.")) return;
+                SetBusy(true, "Checking all tune-group recovery states…");
+                try { int count = await Task.Run(() => new DeepTuneEngine(backend, journals).Restore(receipt.GroupId, null)); await RefreshAfterAction(); ShowPage(7); SetBusy(false, "Tune group restored · " + count + " settings"); }
+                catch (Exception ex) { SetBusy(false, "Group recovery stopped; inspect saved states before continuing."); Error(ex); }
+            }));
             try
             {
                 foreach (var receipt in journals.List()) { var row = grid.Rows[grid.Rows.Add(receipt.CreatedUtc.Replace("T", " ").Substring(0, 19), receipt.Entries.Count, receipt.Status, receipt.Id.Substring(0, 12))]; row.Tag = receipt; }
@@ -283,7 +293,7 @@ namespace Lean81
             catch (Exception ex) { detail.Text = "Receipts unavailable: " + Product.Clean(ex.Message, 400); }
             grid.SelectionChanged += (s, e) => { if (grid.SelectedRows.Count == 0) return; var r = grid.SelectedRows[0].Tag as ChangeReceipt; if (r != null) detail.Text = String.Join(Environment.NewLine, r.Entries.Select(x => x.Name + " · " + x.Status + (x.Error == null ? "" : " · " + x.Error))); };
             grid.ClearSelection(); if (grid.Rows.Count > 0) grid.Rows[0].Selected = true;
-            Rows(body, new Control[] { grid, detail, actions }, -1, 100, 48);
+            Rows(body, new Control[] { grid, detail, actions }, -1, 100, 88);
         }
         bool ReviewDialog(string title, string[] entries, string explanation, string screenshot = null, string actionText = null)
         {

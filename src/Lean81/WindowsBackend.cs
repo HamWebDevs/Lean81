@@ -47,6 +47,28 @@ namespace Lean81
                 try { report.Items.Add(Make(DesktopSettings.Read(new ItemState { Kind = "setting", Scope = "user", Target = option.Id }), option.Title, "Optional desktop effect. Changes take full effect after signing out and back in.", option.Tradeoff, profile)); }
                 catch (Exception ex) { Note(report, option.Title + " unavailable", ex); }
             }
+            foreach (string scope in new[] { "user", "common" })
+            {
+                try
+                {
+                    string folder = StartupFiles.DirectoryFor(scope);
+                    if (System.IO.Directory.Exists(folder)) foreach (var file in System.IO.Directory.EnumerateFiles(folder).Take(64))
+                    {
+                        string name = System.IO.Path.GetFileName(file);
+                        if (!name.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase) && !name.EndsWith(".url", StringComparison.OrdinalIgnoreCase)) continue;
+                        try
+                        {
+                            var state = StartupFiles.Read(new ItemState { Kind = "startupfile", Scope = scope, Target = name });
+                            var item = Make(state, name, "Shortcut in the " + scope + " startup folder. Its target is never launched or resolved during inspection.", "The shortcut is moved to a private backup, so it will no longer run at sign-in. Recovery restores the original file and permissions.", profile);
+                            item.Feature = StartupRules.Feature(StartupFiles.Text(state)); report.Items.Add(item);
+                        }
+                        catch (Exception ex) { Note(report, "Startup shortcut kept for manual review", ex); }
+                    }
+                }
+                catch (Exception ex) { Note(report, "Startup folder unavailable", ex); }
+            }
+            try { report.Items.Add(Make(PowerPlans.Read(), "High performance power plan", "Optional while plugged in. Uses an existing Windows power plan only.", "May reduce power-saving delays, with more heat, fan noise and energy use. The previous plan is saved for Recovery.", profile)); }
+            catch (Exception ex) { Note(report, "Power-plan choice unavailable", ex); }
             try
             {
                 dynamic scheduler = Scheduler();
@@ -54,7 +76,7 @@ namespace Lean81
                 finally { Release(scheduler); }
             }
             catch (Exception ex) { Note(report, "Task inventory incomplete", ex); }
-            report.Notes.Add("Startup folders and RunOnce keys are outside this version's change scope. Open startup folders to inspect their shortcuts.");
+            report.Notes.Add("Startup-folder shortcuts and Run entries are supported. RunOnce keys and unrecognized background software are kept for manual review.");
             report.Notes.Add("Installed apps are listed for manual review; Lean81 never executes uninstall strings.");
             return report;
         }
@@ -64,7 +86,7 @@ namespace Lean81
         {
             bool allowed = state.Exists && state.Enabled;
             try { Policy.Validate(state, profile, false); } catch { allowed = false; }
-            return new ScanItem { Id = Product.Hash(state.Identity()), Name = Product.Clean(name, 180), Kind = state.Kind, Scope = state.Scope,
+            return new ScanItem { Id = Product.Hash(state.Identity()), Name = Product.Clean(name, 180), Kind = state.Kind, Scope = state.Scope, Feature = state.Kind == "startup" ? StartupRules.Feature(state.Target + " " + state.Value) : null,
                 Status = Policy.StateLabel(state), Detail = detail, Tradeoff = tradeoff, CanChange = allowed,
                 Suggested = allowed && state.Kind == "service", Before = state };
         }
@@ -75,6 +97,8 @@ namespace Lean81
         }
         public ItemState Read(ItemState identity)
         {
+            if (identity.Kind == "startupfile") return StartupFiles.Read(identity);
+            if (identity.Kind == "power") return PowerPlans.Read();
             if (identity.Kind == "setting") return DesktopSettings.Read(identity);
             if (identity.Kind == "service") return NativeServices.Read(identity.Target);
             if (identity.Kind == "task")
@@ -106,6 +130,8 @@ namespace Lean81
         {
             Policy.Validate(state, profile, restoring);
             if (!IsAdministrator) throw new InvalidOperationException("Administrator mode is required.");
+            if (state.Kind == "startupfile") { StartupFiles.CheckAccess(state, restoring); return; }
+            if (state.Kind == "power") { PowerPlans.Check(state, restoring); return; }
             if (state.Kind == "setting") { DesktopSettings.CheckAccess(state); return; }
             if (state.Kind == "service")
             {
@@ -138,8 +164,10 @@ namespace Lean81
         void Set(ItemState original, bool restore)
         {
             // The engine has just verified identity/state and saved intent. Revalidate the allowlist here too.
-            Policy.Validate(original, new UsageProfile { Printing = false, Bluetooth = false, IndexedSearch = false, TouchKeyboard = false, HomeGroup = false, MediaSharing = false, OfflineFiles = false, Prefetch = false, Scanning = false, PortableDevices = false, ErrorReporting = false, LinkTracking = false }, restore);
+            Policy.Validate(original, Profiles.AllUnused(), restore);
             if (!IsAdministrator) throw new InvalidOperationException("Administrator mode is required.");
+            if (original.Kind == "startupfile") { StartupFiles.Set(original, restore); return; }
+            if (original.Kind == "power") { PowerPlans.Set(original, restore); return; }
             if (original.Kind == "setting") { DesktopSettings.Set(original, restore); return; }
             if (original.Kind == "service") { NativeServices.Set(original, restore); return; }
             if (original.Kind == "startup")
@@ -212,6 +240,7 @@ namespace Lean81
                         task = tasks.Item(i); var state = TaskState(task);
                         var item = Make(state, (string)task.Name, "Scheduled activity. Review its purpose in Task Scheduler before choosing.", "This task will no longer run automatically; app updates or maintenance may be affected.", profile);
                         if (ProtectedTask(state.Target, (string)task.Xml)) { item.CanChange = false; item.Detail = "Protected system, security or hardware task; inspection only."; }
+                        item.Feature = StartupRules.Feature(state.Target + " " + TaskDocument((string)task.Xml).InnerText);
                         report.Items.Add(item);
                     }
                     catch (Exception ex) { Note(report, "Task skipped", ex); }
