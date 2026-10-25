@@ -16,13 +16,13 @@ namespace Lean81
     {
         public readonly List<double?> Values = new List<double?>();
         public readonly List<double?> MemoryValues = new List<double?>(), DiskValues = new List<double?>();
-        public CpuChart() { DoubleBuffered = true; BackColor = Color.White; }
+        public CpuChart() { DoubleBuffered = true; BackColor = Design.Surface; }
         protected override void OnPaint(PaintEventArgs e)
         {
             base.OnPaint(e); var g = e.Graphics; g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             var plot = new Rectangle(44, 18, Math.Max(1, Width - 68), Math.Max(1, Height - 48));
-            using (var grid = new Pen(Color.FromArgb(228, 234, 238)))
-            using (var text = new SolidBrush(Color.FromArgb(105, 119, 132)))
+            using (var grid = new Pen(Design.Border))
+            using (var text = new SolidBrush(Design.Muted))
                 for (int n = 0; n <= 4; n++)
                 {
                     float y = plot.Top + plot.Height * n / 4f; g.DrawLine(grid, plot.Left, y, plot.Right, y);
@@ -33,10 +33,10 @@ namespace Lean81
             {
                 var points = Values.Select((v, i) => new PointF(plot.Left + i * plot.Width / (float)Math.Max(14, Values.Count - 1), plot.Bottom - (float)v.Value / 100 * plot.Height)).ToArray();
                 var area = new List<PointF> { new PointF(points[0].X, plot.Bottom) }; area.AddRange(points); area.Add(new PointF(points[points.Length - 1].X, plot.Bottom));
-                using (var fill = new SolidBrush(Color.FromArgb(30, 15, 145, 125))) g.FillPolygon(fill, area.ToArray());
+                using (var fill = new SolidBrush(Color.FromArgb(24, Design.Accent))) g.FillPolygon(fill, area.ToArray());
             }
-            Series(g, plot, Values, Color.FromArgb(13, 137, 119));
-            Series(g, plot, MemoryValues, Color.FromArgb(51, 111, 194)); Series(g, plot, DiskValues, Color.FromArgb(193, 122, 24));
+            Series(g, plot, Values, Design.Accent);
+            Series(g, plot, MemoryValues, Color.FromArgb(121, 184, 255)); Series(g, plot, DiskValues, Color.FromArgb(229, 173, 96));
         }
         static void Series(Graphics g, Rectangle plot, IList<double?> values, Color color)
         {
@@ -49,13 +49,14 @@ namespace Lean81
     }
     public sealed partial class MainForm : Form
     {
-        static readonly Color Ink = Color.FromArgb(27, 43, 59), Muted = Color.FromArgb(92, 109, 124), Teal = Color.FromArgb(12, 128, 111), Canvas = Color.FromArgb(244, 247, 249);
+        static Color Ink { get { return Design.Text; } } static Color Muted { get { return Design.Muted; } } static Color Canvas { get { return Design.Canvas; } }
         readonly IBackend backend; readonly IJournalStore journals; readonly bool demo;
         readonly UsageProfile profile = new UsageProfile();
         readonly Dictionary<string, ScanItem> selected = new Dictionary<string, ScanItem>();
         readonly Panel content = new Panel(), sidebar = new Panel();
         readonly Label status = new Label(); readonly List<Button> navigation = new List<Button>();
-        readonly Button review = new Button();
+        readonly Button review = new ActionControl();
+        readonly Label localBadge = new Label();
         TableLayoutPanel pageLayout;
         ScanReport report; int page = 11; bool busy; CancellationTokenSource captureCancel;
         CaptureResult capture; CpuChart chart; Label captureStats;
@@ -66,51 +67,57 @@ namespace Lean81
             preferences = demo ? null : WorkspaceStore.Local(); workspace = preferences == null ? new UserWorkspace() : preferences.Load(); Profiles.Copy(workspace.Profile, profile);
             preferencesNotice = preferences == null ? null : preferences.Warning;
             Text = "Lean81" + (demo ? " — Demo" : "") + " · " + Product.Version;
-            Font = new Font("Segoe UI", 9.5f); ForeColor = Ink; BackColor = Canvas;
-            ClientSize = new Size(1080, 700); MinimumSize = new Size(980, 620); StartPosition = FormStartPosition.CenterScreen;
+            Font = Design.Body; ForeColor = Ink; BackColor = Canvas;
+            ClientSize = new Size(1080, 700); MinimumSize = SizeFromClientSize(new Size(980, 620)); StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.Dpi;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
-            var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = Color.White, Padding = new Padding(16, 10, 16, 10), Margin = Padding.Empty };
+            var footer = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, BackColor = Design.Sidebar, Padding = new Padding(18, 8, 18, 8), Margin = Padding.Empty };
             footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); footer.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 185));
-            review.Text = "Review changes (0)"; review.Dock = DockStyle.Fill; review.Margin = Padding.Empty; StyleButton(review, true); review.Click += async (s, e) => await ReviewChanges(); footer.Controls.Add(review, 1, 0);
-            status.Text = demo ? "Demo workspace · no system changes" : "Ready · scan to inspect this laptop"; status.Dock = DockStyle.Fill; status.AutoEllipsis = true; status.TextAlign = ContentAlignment.MiddleLeft; status.ForeColor = Muted; footer.Controls.Add(status, 0, 0);
-            content.Dock = DockStyle.Fill; content.Padding = new Padding(28, 22, 28, 18); content.AutoScroll = true;
-            sidebar.Dock = DockStyle.Left; sidebar.Width = 196; sidebar.BackColor = Ink;
-            var branding = new Panel { Dock = DockStyle.Top, Height = 115 };
-            var brand = new Label { Text = "Lean81", Font = new Font("Segoe UI", 25, FontStyle.Bold), ForeColor = Color.White, Bounds = new Rectangle(21, 21, 166, 49) }; branding.Controls.Add(brand);
-            branding.Controls.Add(new Label { Text = "A lighter working day.", ForeColor = Color.FromArgb(175, 194, 207), Bounds = new Rectangle(24, 75, 170, 26) });
-            var navPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true }; sidebar.Controls.Add(navPanel);
-            for (int i = 0; i < Pages.Length; i++)
+            review.Text = "Review changes (0)"; review.Dock = DockStyle.Fill; review.Margin = Padding.Empty; StyleButton(review, true); review.Click += async (s, e) => await ReviewChanges(); var reviewHost = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty }; footer.Controls.Add(reviewHost, 1, 0); reviewHost.Controls.Add(review);
+            localBadge.Text = demo ? "DEMO / NO SYSTEM WRITES" : "LOCAL / NO TELEMETRY"; localBadge.ForeColor = Design.Muted; localBadge.Font = Design.Small; localBadge.TextAlign = ContentAlignment.MiddleRight; localBadge.Dock = DockStyle.Fill; reviewHost.Controls.Add(localBadge);
+            status.Text = demo ? "Demo workspace" : "Ready to scan"; status.Dock = DockStyle.Fill; status.AutoEllipsis = true; status.TextAlign = ContentAlignment.MiddleLeft; status.ForeColor = Muted; status.Font = Design.Small; footer.Controls.Add(status, 0, 0);
+            content.Dock = DockStyle.Fill; content.Padding = new Padding(26, 18, 26, 14); content.AutoScroll = true;
+            sidebar.Dock = DockStyle.Left; sidebar.Width = 202; sidebar.BackColor = Design.Sidebar;
+            var navPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true, BackColor = Design.Sidebar }; sidebar.Controls.Add(navPanel);
+            for (int i = 0; i < Pages.Length; i++) navigation.Add(null);
+            int y = 4; var groups = new[] { new[] { 11, 13, 14, 0 }, new[] { 2, 4, 3, 12, 5 }, new[] { 6, 8, 7, 9, 1, 10 } }; string[] names = { "WORKSPACE", "BACKGROUND", "TOOLS" };
+            for (int group = 0; group < groups.Length; group++)
             {
-                int target = i; var button = new Button { Text = Pages[i], UseMnemonic = false, Bounds = new Rectangle(8, i * 37, 160, 34), TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(10, 0, 0, 0), FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(202, 215, 224), BackColor = Ink, TabIndex = i };
-                button.FlatAppearance.BorderSize = 0; button.Click += (s, e) => ShowPage(target); navigation.Add(button); navPanel.Controls.Add(button);
+                navPanel.Controls.Add(new Label { Text = names[group], Font = Design.Small, ForeColor = Muted, BackColor = Design.Sidebar, Bounds = new Rectangle(23, y, 152, 22) }); y += 25;
+                foreach (int index in groups[group])
+                {
+                    int target = index; var button = new NavControl { Text = Pages[index], Page = index, Bounds = new Rectangle(9, y, 171, 34), Font = Design.Body, TabIndex = y, AccessibleName = Pages[index], UseMnemonic = false };
+                    button.Click += (s, e) => ShowPage(target); navigation[index] = button; navPanel.Controls.Add(button); y += 36;
+                }
+                y += 15;
             }
-            var mode = new Label { Text = demo ? "SYNTHETIC DEMO\nNo system writes" : backend.IsAdministrator ? "ADMINISTRATOR\nChanges enabled" : "INSPECTION MODE\nNo admin needed to scan", ForeColor = Color.FromArgb(162, 184, 198), AutoSize = false, Height = 55, Dock = DockStyle.Bottom, Padding = new Padding(24, 4, 8, 6) }; sidebar.Controls.Add(mode);
-            sidebar.Controls.Add(branding);
+            var mode = new Label { Text = demo ? "DEMO MODE\nSynthetic data only" : backend.IsAdministrator ? "ADMINISTRATOR\nChanges enabled" : "INSPECTION MODE\nReview to enable changes", ForeColor = Muted, Font = Design.Small, Height = 56, Dock = DockStyle.Bottom, Padding = new Padding(23, 10, 4, 4) }; sidebar.Controls.Add(mode);
+            sidebar.Controls.Add(new BrandControl { Dock = DockStyle.Top });
             var shell = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 2, Margin = Padding.Empty, Padding = Padding.Empty };
-            shell.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 196)); shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-            shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 56));
+            shell.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 202)); shell.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            shell.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); shell.RowStyles.Add(new RowStyle(SizeType.Absolute, 54));
             sidebar.Dock = DockStyle.Fill; sidebar.Margin = Padding.Empty; content.Margin = Padding.Empty;
             shell.Controls.Add(sidebar, 0, 0); shell.SetRowSpan(sidebar, 2); shell.Controls.Add(content, 1, 0); shell.Controls.Add(footer, 1, 1); Controls.Add(shell);
             FormClosing += (s, e) => { if (busy) { closeWhenIdle = true; e.Cancel = true; if (captureCancel != null) captureCancel.Cancel(); status.Text = "Finishing the current operation before closing…"; } };
-            Shown += async (s, e) => await Scan(); ShowPage(page);
+            Shown += async (s, e) => { var area = Screen.FromControl(this).WorkingArea; if (Width > area.Width || Height > area.Height) Size = new Size(Math.Min(Width, area.Width), Math.Min(Height, area.Height)); await Scan(); }; ShowPage(page);
         }
         static Label LabelAt(string text, float size, FontStyle style = FontStyle.Regular)
         { return new Label { Text = text, AutoSize = false, ForeColor = style == FontStyle.Bold ? Ink : Muted, Font = new Font("Segoe UI", size, style), Dock = DockStyle.Top }; }
         static void StyleButton(Button button, bool primary)
         {
-            button.FlatStyle = FlatStyle.Flat; button.FlatAppearance.BorderSize = primary ? 0 : 1;
-            button.FlatAppearance.BorderColor = Color.FromArgb(206, 216, 223); button.BackColor = primary ? Teal : Color.White; button.ForeColor = primary ? Color.White : Ink; button.Cursor = Cursors.Hand; button.Height = 36;
+            var themed = button as ActionControl; if (themed != null) themed.Primary = primary;
+            button.FlatStyle = FlatStyle.Flat; button.FlatAppearance.BorderSize = 0;
+            button.UseVisualStyleBackColor = false; button.BackColor = primary ? Design.Accent : Design.Surface; button.ForeColor = primary ? Design.OnAccent : Design.Text; button.Cursor = Cursors.Hand; button.Height = 36;
         }
         static Button ActionButton(string text, EventHandler action, bool primary = false)
         {
-            var b = new Button { Text = text, UseMnemonic = false, AutoSize = true, MinimumSize = new Size(140, 36), Margin = new Padding(0, 0, 12, 0), Padding = new Padding(10, 0, 10, 0) };
+            var b = new ActionControl { Text = text, UseMnemonic = false, AutoSize = true, MinimumSize = new Size(140, 36), Margin = new Padding(0, 0, 12, 0), Padding = new Padding(10, 0, 10, 0) };
             StyleButton(b, primary); b.Click += action; return b;
         }
         void Heading(string title, string subtitle)
         {
-            var sub = LabelAt(subtitle, 10); sub.Height = 48; sub.Padding = new Padding(0, 3, 0, 0);
-            var heading = LabelAt(title, 24, FontStyle.Bold); heading.Height = 48;
+            var sub = LabelAt(subtitle, 9.5f); sub.Height = 44; sub.Padding = new Padding(0, 3, 0, 0);
+            var heading = LabelAt(title, 25, FontStyle.Bold); heading.Height = 48;
             pageLayout.Controls.Add(heading, 0, 0); pageLayout.Controls.Add(sub, 0, 1);
         }
         void Body(Control control) { control.Dock = DockStyle.Fill; control.Margin = Padding.Empty; pageLayout.Controls.Add(control, 0, 2); }
@@ -132,12 +139,12 @@ namespace Lean81
             foreach (Control child in content.Controls.Cast<Control>().ToArray()) child.Dispose();
             content.Controls.Clear(); chart = null; captureStats = null;
             pageLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 3, Margin = Padding.Empty };
-            pageLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); content.Controls.Add(pageLayout);
-            for (int i = 0; i < navigation.Count; i++) { navigation[i].BackColor = i == page ? Color.FromArgb(44, 68, 85) : Ink; navigation[i].ForeColor = i == page ? Color.White : Color.FromArgb(202, 215, 224); }
+            pageLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44)); pageLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); content.Controls.Add(pageLayout);
+            for (int i = 0; i < navigation.Count; i++) { ((NavControl)navigation[i]).Selected = i == page; navigation[i].Invalidate(); }
             var navigationHost = navigation[index].Parent as ScrollableControl;
             if (navigationHost != null) navigationHost.ScrollControlIntoView(navigation[index]);
             if (index == 0) Overview(); else if (index == 1) Profile(); else if (index >= 2 && index <= 4) Inventory(index == 2 ? "startup" : index == 3 ? "task" : "service"); else if (index == 5) Apps(); else if (index == 6) CapturePage(); else if (index == 7) Recovery(); else if (index == 8) DevicePage(); else if (index == 9) RecommendationsPage(); else if (index == 10) ToolsPage(); else if (index == 11) QuickTunePage(); else if (index == 12) Inventory("setting"); else if (index == 13) RunningAppsPage(); else SessionResultPage();
-            UpdateSelection();
+            Design.Apply(content); UpdateSelection();
         }
         void SetBusy(bool value, string message)
         {
@@ -239,7 +246,7 @@ namespace Lean81
         void ExportCapture()
         {
             if (capture == null || capture.Samples.Count == 0) return;
-            using (var options = new Form { Text = "Export resource trace", ClientSize = new Size(480, 180), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false, Font = Font })
+            using (var options = new StyledDialog { Text = "Export resource trace", ClientSize = new Size(480, 180), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false, Font = Font })
             {
                 var text = new Label { Text = "The trace includes CPU, memory, disk counters and process IDs, memory and I/O. Process I/O includes network and devices. No paths or startup commands are exported.", Bounds = new Rectangle(20, 17, 440, 51) }; options.Controls.Add(text);
                 var names = new CheckBox { Text = "Include process names in this export", Bounds = new Rectangle(20, 78, 430, 25) }; options.Controls.Add(names);
@@ -299,7 +306,7 @@ namespace Lean81
         }
         bool ReviewDialog(string title, string[] entries, string explanation, string screenshot = null, string actionText = null)
         {
-            using (var dialog = new Form { Text = title, ClientSize = new Size(690, 470), MinimumSize = new Size(620, 400), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, MinimizeBox = false, MaximizeBox = false, Padding = new Padding(20) })
+            using (var dialog = new StyledDialog { Text = title, ClientSize = new Size(690, 470), MinimumSize = new Size(620, 400), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, MinimizeBox = false, MaximizeBox = false, Padding = new Padding(20) })
             {
                 var header = new Label { Text = explanation, Dock = DockStyle.Top, Height = 70, ForeColor = Muted };
                 var list = new TextBox { Text = String.Join("\r\n\r\n", entries), Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical };
@@ -335,7 +342,7 @@ namespace Lean81
             }
             catch (Exception ex) { SetBusy(false, "Changes stopped · review the current settings and recovery receipts"); Error(ex); }
         }
-        void UpdateSelection() { review.Text = "Review changes (" + selected.Count + ")"; review.Enabled = !busy && !choicesStale && selected.Count > 0; }
+        void UpdateSelection() { review.Text = "Review changes (" + selected.Count + ")"; review.Enabled = !busy && !choicesStale && selected.Count > 0; review.Visible = selected.Count > 0; localBadge.Visible = selected.Count == 0; if (review.Visible) review.BringToFront(); }
         void Elevate()
         {
             if (demo) return;
@@ -364,7 +371,7 @@ namespace Lean81
         void Error(Exception ex) { MessageBox.Show(this, Product.Clean(ex.Message, 700), "Lean81", MessageBoxButtons.OK, MessageBoxIcon.Information); }
         void ShowScanNotes()
         {
-            using (var dialog = new Form { Text = "Scan notes", ClientSize = new Size(650, 410), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(20), MinimizeBox = false, MaximizeBox = false })
+            using (var dialog = new StyledDialog { Text = "Scan notes", ClientSize = new Size(650, 410), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(20), MinimizeBox = false, MaximizeBox = false })
             {
                 var text = new TextBox { Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical,
                     Text = report == null ? "Scan this laptop to see inventory notes." : String.Join("\r\n\r\n", report.Notes) };
@@ -399,7 +406,7 @@ namespace Lean81
         internal void ValidateSmokeLayout()
         {
             PerformLayout();
-            if (pageLayout.GetControlFromPosition(0, 0).Height < 40 || pageLayout.GetControlFromPosition(0, 2).Height < 200 || !review.Visible || review.Height < 25)
+            if (pageLayout.GetControlFromPosition(0, 0).Height < 40 || pageLayout.GetControlFromPosition(0, 2).Height < 200 || selected.Count > 0 && (!review.Visible || review.Height < 25))
                 throw new InvalidOperationException("Required page content or review action is clipped.");
             CheckTables(this);
         }

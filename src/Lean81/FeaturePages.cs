@@ -63,21 +63,27 @@ namespace Lean81
         CheckBox[] FeatureChecks(FlowLayoutPanel host, UsageProfile initial)
         {
             var values = FeatureValues(initial); var checks = new CheckBox[FeatureLabels.Length];
-            for (int i = 0; i < checks.Length; i++) { checks[i] = new CheckBox { Text = FeatureLabels[i], Checked = values[i], AutoSize = true, Margin = new Padding(0, 3, 0, 5), MinimumSize = new Size(540, 25) }; host.Controls.Add(checks[i]); }
-            return checks;
+            for (int i = 0; i < checks.Length; i++) { checks[i] = MakeFeature(i, values[i]); host.Controls.Add(checks[i]); }
+            FitFeatureList(host); return checks;
         }
         ComboBox Presets(CheckBox[] checks)
         {
-            var presets = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 325, Margin = new Padding(0, 4, 12, 0) };
-            presets.Items.Add("Use my current answers"); presets.Items.AddRange(Profiles.Names); presets.SelectedIndex = 0;
-            presets.SelectedIndexChanged += (s, e) => { if (presets.SelectedIndex > 0) { var values = FeatureValues(Profiles.Preset(presets.SelectedIndex - 1)); for (int i = 0; i < checks.Length; i++) checks[i].Checked = values[i]; } };
+            var presets = new DesignComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 325, Margin = new Padding(0, 4, 12, 0) };
+            presets.Items.Add("My feature choices"); presets.Items.AddRange(Profiles.Names); presets.SelectedIndex = 0; bool applying = false;
+            presets.SelectedIndexChanged += (s, e) =>
+            {
+                if (presets.SelectedIndex <= 0) return; applying = true;
+                try { var values = FeatureValues(Profiles.Preset(presets.SelectedIndex - 1)); for (int i = 0; i < checks.Length; i++) checks[i].Checked = values[i]; }
+                finally { applying = false; }
+            };
+            foreach (var check in checks) check.CheckedChanged += (s, e) => { if (!applying) presets.SelectedIndex = 0; };
             return presets;
         }
         async Task QuickSetup(string screenshot = null)
         {
             if (busy) return;
             UsageProfile answers;
-            using (var dialog = new Form { Text = "Lean81 · quick setup", ClientSize = new Size(680, 525), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(20), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
+            using (var dialog = new StyledDialog { Text = "Lean81 · quick setup", ClientSize = new Size(680, 525), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(20), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
             {
                 var note = LabelAt("Keep each feature checked if you use it or aren't sure. Presets only fill these answers.\nNothing is disabled here. Next, review the specific services and their tradeoffs.", 10.5f);
                 var list = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, BackColor = Color.White, Padding = new Padding(14, 8, 8, 8) };
@@ -149,18 +155,18 @@ namespace Lean81
         void CapturePage()
         {
             Heading("Find what is holding you up.", "Two-second CPU, RAM and disk samples. Capture during a slowdown, then inspect the resource details.");
-            var tabs = new TabControl(); Body(tabs); var live = new TabPage("Capture") { Padding = new Padding(8) }; var saved = new TabPage("Saved results & baseline") { Padding = new Padding(8) }; var resources = new TabPage("Memory, disk & processes") { Padding = new Padding(8) }; tabs.TabPages.Add(live); tabs.TabPages.Add(saved); tabs.TabPages.Add(resources);
+            var tabs = new DesignTabs(); Body(tabs); var live = new TabPage("Capture") { Padding = new Padding(8) }; var saved = new TabPage("Saved results & baseline") { Padding = new Padding(8) }; var resources = new TabPage("Memory, disk & processes") { Padding = new Padding(8) }; tabs.TabPages.Add(live); tabs.TabPages.Add(saved); tabs.TabPages.Add(resources);
             var body = new Panel { Dock = DockStyle.Fill }; live.Controls.Add(body);
             var toolbar = new FlowLayoutPanel(); toolbar.Controls.Add(new Label { Text = "Workload", AutoSize = true, Padding = new Padding(0, 7, 8, 0) });
             var workload = new TextBox { Text = workspace.Workload, Width = 215, MaxLength = 80, Margin = new Padding(0, 3, 12, 0) }; toolbar.Controls.Add(workload); workload.TextChanged += (s, e) => workspace.Workload = Product.Clean(workload.Text, 80);
-            var duration = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110, Margin = new Padding(0, 3, 8, 0) }; duration.Items.AddRange(new object[] { "30 seconds", "60 seconds", "120 seconds" }); duration.SelectedIndex = 0; toolbar.Controls.Add(duration);
+            var duration = new DesignComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110, Margin = new Padding(0, 3, 8, 0) }; duration.Items.AddRange(new object[] { "30 seconds", "60 seconds", "120 seconds" }); duration.SelectedIndex = 0; toolbar.Controls.Add(duration);
             captureStats = LabelAt("Ready. Use the laptop normally during capture.", 10.5f);
             chart = new CpuChart();
             var actions = new FlowLayoutPanel { WrapContents = true };
             var start = ActionButton("Start capture", async (s, e) => await StartCapture(duration.SelectedIndex == 0 ? 30 : duration.SelectedIndex == 1 ? 60 : 120), true); actions.Controls.Add(start);
             var stop = ActionButton("Stop", (s, e) => { if (captureCancel != null) captureCancel.Cancel(); }); stop.Enabled = false; actions.Controls.Add(stop);
             var export = ActionButton("Export trace…", (s, e) => ExportCapture()); export.Enabled = capture != null; actions.Controls.Add(export);
-            var peaks = LabelAt("Teal: CPU   ·   Blue: physical RAM in use   ·   Amber: aggregate disk busy\n" + (capture == null ? "Up to 20 CPU, memory and I/O leaders per sample. Monitoring stops with capture." : "Open Memory, disk & processes for sortable leaders and findings."), 9.5f);
+            var peaks = LabelAt("Lime: CPU   ·   Blue: physical RAM in use   ·   Amber: aggregate disk busy\n" + (capture == null ? "Up to 20 CPU, memory and I/O leaders per sample. Monitoring stops with capture." : "Open Memory, disk & processes for sortable leaders and findings."), 9.5f);
             Rows(body, new Control[] { toolbar, captureStats, chart, peaks, actions }, 40, 42, -1, 52, 46);
             if (capture != null) { chart.Values.AddRange(capture.Samples.Select(s => ResourceAnalysis.Number(s.metrics, "cpu_pct", 100))); chart.MemoryValues.AddRange(capture.Samples.Select(s => { var available = ResourceAnalysis.Number(s.metrics, "memory_available_pct", 100); return available.HasValue ? (double?)(100 - available.Value) : null; })); chart.DiskValues.AddRange(capture.Samples.Select(s => ResourceAnalysis.Number(s.metrics, "disk_busy_pct", 100))); ShowCaptureStats(); }
             captureControls = running => { start.Enabled = !running; stop.Enabled = running; workload.Enabled = !running; duration.Enabled = !running; export.Enabled = !running && capture != null; tabs.TabPages[1].Enabled = tabs.TabPages[2].Enabled = !running; };
@@ -194,7 +200,7 @@ namespace Lean81
             if (report == null) { status.Text = "Scan this laptop before exporting a report."; return; }
             var current = selectedResult ?? latestSummary ?? workspace.History.FirstOrDefault();
             var baseline = workspace.History.FirstOrDefault(r => r.Id == workspace.BaselineId);
-            using (var options = new Form { Text = "Export laptop report", ClientSize = new Size(610, 340), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
+            using (var options = new StyledDialog { Text = "Export laptop report", ClientSize = new Size(610, 340), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false })
             {
                 var text = LabelAt("Save a self-contained HTML report with next steps, device capacity and CPU evidence. Open or print it in a browser. Commands, paths, receipts, workload labels and machine identifiers are excluded.", 10);
                 var comparison = new CheckBox { Text = baseline == null ? "Baseline comparison (choose a baseline in Saved results first)" : "Include baseline comparison and condition checks", AutoSize = true, Checked = baseline != null && current != null, Enabled = baseline != null && current != null };
@@ -213,7 +219,7 @@ namespace Lean81
         void ToolsPage()
         {
             Heading("Help when you need it.", "Open a specific Windows tool or read how Lean81's choices, captures and recovery work.");
-            var tabs = new TabControl(); Body(tabs); var tools = new TabPage("Windows tools") { Padding = new Padding(8) }; var help = new TabPage("How it works") { Padding = new Padding(8) }; tabs.TabPages.Add(tools); tabs.TabPages.Add(help);
+            var tabs = new DesignTabs(); Body(tabs); var tools = new TabPage("Windows tools") { Padding = new Padding(8) }; var help = new TabPage("How it works") { Padding = new Padding(8) }; tabs.TabPages.Add(tools); tabs.TabPages.Add(help);
             var body = new Panel { Dock = DockStyle.Fill }; tools.Controls.Add(body); var grid = Grid(); grid.ReadOnly = true; grid.Columns.Add("Name", "Tool"); grid.Columns.Add("Purpose", "Purpose"); grid.Columns[0].FillWeight = 29; grid.Columns[1].FillWeight = 71; grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
             foreach (var tool in WindowsTools.All) { var row = grid.Rows[grid.Rows.Add(tool.Title, tool.Purpose)]; row.Tag = tool; }
             var actions = new FlowLayoutPanel(); actions.Controls.Add(ActionButton("Open selected tool", (s, e) => { if (grid.SelectedRows.Count > 0) OpenTool(((ToolSpec)grid.SelectedRows[0].Tag).Id); }, true)); actions.Controls.Add(ActionButton("Startup folder", (s, e) => OpenStartup()));

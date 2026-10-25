@@ -68,7 +68,7 @@ namespace Lean81
         {
             if (!demo) throw new InvalidOperationException("Synthetic mode required.");
             ShowPage(11); var presets = Descendants(content).OfType<ComboBox>().Single(); presets.SelectedIndex = 5;
-            var answers = ReadChecks(Descendants(content).OfType<CheckBox>().Take(FeatureLabels.Length).ToArray());
+            var answers = ReadChecks(OrderedFeatureChecks(content));
             if (Product.Json().Serialize(answers) != Product.Json().Serialize(Profiles.Preset(4))) throw new InvalidOperationException("Maximum-reduction answers are not connected to the deep-tune page.");
             var initial = report.Items.ToDictionary(i => i.Id, i => backend.Read(i.Before).Fingerprint());
             var engine = new DeepTuneEngine(backend, journals);

@@ -36,8 +36,8 @@ public static class LeanIcon {
  public static void Write(string path) {
   using (var image = new Bitmap(64,64)) {
    using (var g=Graphics.FromImage(image)) {
-    g.Clear(Color.FromArgb(27,43,59)); g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-    using(var p=new Pen(Color.FromArgb(51,207,173),7)) { p.StartCap=p.EndCap=System.Drawing.Drawing2D.LineCap.Round; g.DrawLines(p,new[]{new Point(17,16),new Point(17,47),new Point(46,47)}); }
+    g.Clear(Color.FromArgb(16,18,21)); g.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+    using(var p=new Pen(Color.FromArgb(196,245,100),7)) { p.StartCap=p.EndCap=System.Drawing.Drawing2D.LineCap.Round; g.DrawLines(p,new[]{new Point(17,16),new Point(17,47),new Point(46,47)}); }
     using(var p=new Pen(Color.White,4)) g.DrawLines(p,new[]{new Point(29,32),new Point(36,24),new Point(42,31),new Point(51,18)});
    }
    IntPtr handle=image.GetHicon(); try { using(var icon=Icon.FromHandle(handle)) using(var file=File.Create(path)) icon.Save(file); } finally { DestroyIcon(handle); }
@@ -79,7 +79,7 @@ if ($Gui) {
     if ($process.ExitCode -ne 0 -or !(Test-Path (Join-Path $guiDir 'gui-smoke.txt'))) { throw 'GUI smoke failed; inspect GUI artifacts.' }
 }
 if ($Package) {
-    $version = '1.2.0-rc.1'
+    $version = '1.2.0-rc.2'
     $portable = Join-Path $out ('Lean81-' + $version + '-portable')
     if (Test-Path $portable) { Remove-Item -Recurse -Force $portable }
     New-Item -ItemType Directory $portable | Out-Null

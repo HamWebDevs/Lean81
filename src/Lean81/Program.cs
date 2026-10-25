@@ -10,7 +10,7 @@ using System.Windows.Forms;
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2026 HamWebDevs")]
 [assembly: System.Reflection.AssemblyVersion("1.2.0.0")]
 [assembly: System.Reflection.AssemblyFileVersion("1.2.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersion("1.2.0-rc.1")]
+[assembly: System.Reflection.AssemblyInformationalVersion("1.2.0-rc.2")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.5.1", FrameworkDisplayName = ".NET Framework 4.5.1")]
 
 namespace Lean81
