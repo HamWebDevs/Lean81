@@ -6,7 +6,7 @@ Lean81 stops reviewed unused services, prevents recognized background software f
 
 [Download Lean81 1.1](https://github.com/HamWebDevs/Lean81/releases/tag/v1.1.0) · [Quick start](docs/QUICKSTART.txt) · [Deep-tune guide](docs/FEATURES.md) · [Recovery](docs/RECOVERY.md)
 
-**In development: 1.2.0-rc.1.** Deep tune now combines configuration changes and selected running-companion closure in one review. Its result page shows each action, direct group recovery and optional short CPU/RAM/disk observations inside Lean81. The stable download above remains 1.1. See the [candidate notes](docs/RELEASE-1.2.0-rc.1.md) and [release validation plan](docs/RELEASE-READINESS.md).
+**In development: 1.2.0-rc.1.** Deep tune now combines configuration changes and selected running-companion closure in one review. Its result page shows each action, direct group recovery and optional short CPU/RAM/disk observations inside Lean81. The stable download above remains 1.1. See the [candidate notes](docs/RELEASE-1.2.0-rc.1.md) and [release validation plan](docs/RELEASE-READINESS.md). [View the candidate result screen](docs/screenshots/tune-result.png) (synthetic data).
 
 ![Deep tune with synthetic data](docs/screenshots/deep-tune.png)
 
