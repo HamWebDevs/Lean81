@@ -23,7 +23,8 @@ static partial class Tests
         Test("unknown preset is refused", () => Throws(() => Profiles.Preset(99)));
         Test("profile copying does not alias source", () => { var a = Profiles.Preset(2); var b = new UsageProfile(); Profiles.Copy(a, b); b.Printing = false; Assert(a.Printing && !b.Printing && !b.Bluetooth); });
         Test("service reason explains kept feature", () => Assert(Profiles.FeatureReason(Item(Service()), new UsageProfile()).Contains("usage answers")));
-        Test("service reason explains dependencies", () => { var s = Service(); s.Dependents = new[] { "fixture" }; Assert(Profiles.FeatureReason(Item(s), Unused()).Contains("another enabled service")); });
+        Test("service reason explains dependencies", () => { var s = Service(); s.Dependents = new[] { "fixture" }; Assert(Profiles.FeatureReason(Item(s), Unused()).Contains("another service")); });
+        Test("a disabled-running service is not described as already reduced", () => { var s = Service(); s.StartType = 4; s.Enabled = s.Delayed = false; Assert(Profiles.FeatureReason(Item(s), Unused()).Contains("marked this feature unused")); });
         Test("service reason explains explicit unused choice", () => Assert(Profiles.FeatureReason(Item(Service()), Unused()).Contains("marked this feature unused")));
         Test("storage low-space threshold handles small disks", () => Assert(new DiskSnapshot { TotalBytes = 40L << 30, FreeBytes = 4L << 30 }.LowSpace));
         Test("storage percentage threshold handles large disks", () => Assert(new DiskSnapshot { TotalBytes = 500L << 30, FreeBytes = 40L << 30 }.LowSpace));

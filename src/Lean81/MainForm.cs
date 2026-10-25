@@ -67,7 +67,7 @@ namespace Lean81
             preferences = demo ? null : WorkspaceStore.Local(); workspace = preferences == null ? new UserWorkspace() : preferences.Load(); Profiles.Copy(workspace.Profile, profile);
             preferencesNotice = preferences == null ? null : preferences.Warning;
             Text = "Lean81" + (demo ? " — Demo" : "") + " · " + Product.Version;
-            Font = Design.Body; ForeColor = Ink; BackColor = Canvas;
+            Font = Design.Body; ForeColor = Ink; BackColor = Canvas; DoubleBuffered = true;
             ClientSize = new Size(1080, 700); MinimumSize = SizeFromClientSize(new Size(980, 620)); StartPosition = FormStartPosition.CenterScreen;
             AutoScaleMode = AutoScaleMode.Dpi;
             try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
