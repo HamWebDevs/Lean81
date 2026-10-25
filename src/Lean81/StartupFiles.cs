@@ -62,6 +62,17 @@ namespace Lean81
             var bytes = Convert.FromBase64String(state.Value);
             return state.Target + " " + Encoding.Unicode.GetString(bytes) + " " + Encoding.UTF8.GetString(bytes);
         }
+        public static string SecurityFingerprint(string sddl)
+        {
+            if (sddl == null) return null;
+            var descriptor = new RawSecurityDescriptor(sddl);
+            byte[] dacl = descriptor.DiscretionaryAcl == null ? null : new byte[descriptor.DiscretionaryAcl.BinaryLength];
+            if (dacl != null) descriptor.DiscretionaryAcl.GetBinaryForm(dacl, 0);
+            // Auto-inheritance bookkeeping flags can change after a move. Preserve
+            // owner, group, DACL protection and every ordered ACE in comparisons.
+            return Product.Hash(Product.Json().Serialize(new { Owner = descriptor.Owner == null ? null : descriptor.Owner.Value, Group = descriptor.Group == null ? null : descriptor.Group.Value,
+                Protected = (descriptor.ControlFlags & ControlFlags.DiscretionaryAclProtected) != 0, Dacl = dacl == null ? null : Convert.ToBase64String(dacl) }));
+        }
         public static void Validate(ItemState state)
         {
             if (!FileName(state.Target) || state.Scope != "user" && state.Scope != "common" || !state.Exists || !state.Enabled || state.ValueKind != 3 || state.Value == null || state.Value.Length > 24 * 1024 || state.FileSecurity == null || state.FileSecurity.Length > 16384)
@@ -121,6 +132,7 @@ namespace Lean81
                 if (Read(original).Fingerprint() == original.Fingerprint()) return;
                 var access = new FileSecurity(); access.SetSecurityDescriptorSddlForm(original.FileSecurity, AccessControlSections.Access);
                 var wanted = new FileSecurity(); wanted.SetSecurityDescriptorSddlForm(original.FileSecurity);
+                access.SetAccessRuleProtection(wanted.AreAccessRulesProtected, true);
                 var currentOwner = File.GetAccessControl(backup).GetOwner(typeof(SecurityIdentifier));
                 var wantedOwner = wanted.GetOwner(typeof(SecurityIdentifier));
                 if (!currentOwner.Equals(wantedOwner)) access.SetOwner(wantedOwner);

@@ -33,7 +33,7 @@ namespace Lean81
             var choices = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false };
             var effects = new CheckBox { Text = "Reduce desktop effects", AutoSize = true, Checked = true };
             var startup = new CheckBox { Text = "Include recognized startup apps, shortcuts and third-party tasks for unused categories", AutoSize = true, Checked = true };
-            var power = new CheckBox { Text = "Use High performance while plugged in (more heat / energy)", AutoSize = true };
+            var power = new CheckBox { Text = "Select High performance plan (mains required; stays active until changed)", AutoSize = true };
             choices.Controls.Add(effects); choices.Controls.Add(startup); choices.Controls.Add(power);
             var note = new TextBox { Text = lastTune ?? "Maximum reduction assumes no printing, Bluetooth, indexing, preloading, TV, sync, chat or local game launchers. Check anything you need. Windows security, networking and core services stay protected. App updates you disable will need manual attention. No recording or export is required.", Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BackColor = Color.White };
             var actions = new FlowLayoutPanel { WrapContents = true };

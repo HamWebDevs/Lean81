@@ -121,7 +121,7 @@ namespace Lean81
                 // Dependents are a live eligibility observation, not changed settings.
                 // Every service write still rechecks them in native preflight.
                 Dependents = Kind == "service" ? new string[0] : (Dependents ?? new string[0]).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToArray(),
-                FileAttributes, FileCreatedUtc, FileModifiedUtc, FileSecurity
+                FileAttributes, FileCreatedUtc, FileModifiedUtc, FileSecurity = Kind == "startupfile" ? StartupFiles.SecurityFingerprint(FileSecurity) : FileSecurity
             }));
         }
         public ItemState Disabled()

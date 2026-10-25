@@ -243,7 +243,7 @@ namespace Lean81
                 var names = new CheckBox { Text = "Include process names in this export", Bounds = new Rectangle(20, 78, 430, 25) }; options.Controls.Add(names);
                 var save = ActionButton("Choose file…", (s, e) => options.DialogResult = DialogResult.OK, true); save.Bounds = new Rectangle(310, 124, 150, 36); options.Controls.Add(save); options.AcceptButton = save;
                 if (options.ShowDialog(this) != DialogResult.OK) return;
-                using (var dialog = new SaveFileDialog { Filter = "ReclaimLab trace (*.jsonl)|*.jsonl|Resource sample spreadsheet (*.csv)|*.csv", FileName = "lean81-resources-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture), AddExtension = true })
+                using (var dialog = new SaveFileDialog { Filter = "JSONL resource trace (*.jsonl)|*.jsonl|Resource sample spreadsheet (*.csv)|*.csv", FileName = "lean81-resources-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture), AddExtension = true })
                     if (dialog.ShowDialog(this) == DialogResult.OK) try { if (dialog.FilterIndex == 2) capture.ExportCsv(dialog.FileName, names.Checked); else capture.Export(dialog.FileName, names.Checked); status.Text = "Capture exported · " + capture.Samples.Count + " samples"; } catch (Exception ex) { Error(ex); }
             }
         }

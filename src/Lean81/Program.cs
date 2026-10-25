@@ -4,7 +4,7 @@ using System.Security.Principal;
 using System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("Lean81")]
-[assembly: System.Reflection.AssemblyDescription("A small, reversible background-load workbench for Windows 8.1 laptops")]
+[assembly: System.Reflection.AssemblyDescription("Active, reversible background-load tuning for Windows 8.1 laptops")]
 [assembly: System.Reflection.AssemblyCompany("HamWebDevs")]
 [assembly: System.Reflection.AssemblyProduct("Lean81")]
 [assembly: System.Reflection.AssemblyCopyright("Copyright © 2026 HamWebDevs")]

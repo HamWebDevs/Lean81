@@ -123,16 +123,27 @@ namespace Lean81
         public IList<RunningApp> Scan()
         {
             var result = new List<RunningApp>(); string foreground = ForegroundFamily();
-            foreach (var p in Process.GetProcesses().Take(1024))
+            var processes = Process.GetProcesses();
+            var names = new HashSet<string>(AppCatalog.Families.SelectMany(f => f.Files).Select(Path.GetFileNameWithoutExtension), StringComparer.OrdinalIgnoreCase);
+            try
             {
-                using (p)
-                using (var handle = OpenProcess(0x1000, false, p.Id))
+                foreach (var p in processes.Take(1024))
                 {
-                    if (handle.IsInvalid) continue;
-                    try { var app = Read(handle, p.Id); if (app != null) { app.Foreground = app.Family == foreground; result.Add(app); } } catch (Win32Exception) { }
+                    try
+                    {
+                        if (!names.Contains(p.ProcessName)) continue;
+                        using (var handle = OpenProcess(0x1000, false, p.Id))
+                        {
+                            if (handle.IsInvalid) continue;
+                            var app = Read(handle, p.Id); if (app != null) { app.Foreground = app.Family == foreground; result.Add(app); }
+                        }
+                    }
+                    catch (Win32Exception) { }
+                    catch (InvalidOperationException) { }
+                    if (result.Count >= 256) break;
                 }
-                if (result.Count >= 256) break;
             }
+            finally { foreach (var p in processes) p.Dispose(); }
             return result;
         }
         public AppCloseResult Close(RunningApp approved, bool force)
