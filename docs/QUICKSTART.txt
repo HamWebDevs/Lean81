@@ -1,47 +1,51 @@
-Lean81 0.3.0 preview - HamWebDevs
+Lean81 1.0.0 - HamWebDevs
 
-GET STARTED
-1. Extract the portable ZIP and open Lean81.exe.
-2. Choose Quick setup. Keep features checked if you use them or are unsure.
-3. Review the matching choices, select specific items, then Review changes.
+QUICK TUNE YOUR LAPTOP
+1. Extract Lean81-1.0.0-portable.zip and open Lean81.exe.
+2. Open Quick tune. Try Browser / cloud gaming laptop, then check every answer.
+3. Keep features checked if you use them or are unsure. Untick indexed search
+   or Superfetch only if you want to try those particular tradeoffs.
+4. Optionally include desktop effects, then choose Build my review.
+5. Read the changes and apply. Original settings are saved first. If Windows
+   asks for administrator permission, build the review again after the rescan.
+6. Review recognized Startup apps separately to stop unnecessary sign-in apps.
 
-Presets only fill usage answers. Nothing is disabled automatically. Scan,
-capture, compare and export without admin. Enabling changes opens a fresh
-administrator scan under the same Windows account; your answers are remembered,
-and you choose items again before applying. You can save a review as text.
+Services with enabled dependents stay protected. Nothing is disabled merely
+by selecting a preset. Reduced desktop effects may need sign-out/sign-in.
 
-MEASURE THE RESULT
-Open CPU capture and name the activity (for example, Browsing).
-Capture 30 seconds of normal use. In Saved results & baseline, select the
-result and choose Use as baseline. After changes, repeat the same activity,
-duration and power source. Select the new result and Compare selected.
-Mismatched or incomplete runs are explained rather than given a speed score.
-Up to 12 aggregate results are saved locally; the baseline is retained.
+FIND CPU, RAM AND DISK PRESSURE
+Open Resource capture and record 30-120 seconds during the slowdown.
+Teal = CPU, blue = physical RAM in use, amber = aggregate disk busy.
+Open Memory, disk & processes to sort CPU/RAM/private-memory/I/O leaders
+and read commit usage, kernel pools, disk queue and page-in observations.
+Unknown counters stay unknown. Process I/O includes network and device
+operations, not just disk; use Resource Monitor for detailed attribution.
 
-MORE FEATURES
-Recommendations: next steps based on your scan and observations.
-Device & storage: CPU, RAM, uptime, battery/power and fixed-drive free space.
-Installed apps: filter by name or publisher; use the normal Windows uninstaller.
-Export report: printable local HTML with next steps and CPU coverage.
-Saved results: Export selected can include the baseline and optional history.
-Names are omitted by default; workload labels and machine IDs are withheld.
-Export trace: ReclaimLab JSONL or CSV; process names omitted by default.
-Help & tools: built-in guidance and nine fixed Windows tool shortcuts.
-Recovery: check saved states without writes, or restore exact original settings.
+COMPARE BEFORE AND AFTER
+In Saved results & baseline, select a capture and choose Use as baseline.
+After changes, repeat the same activity, duration and power source. Compare
+a different result. Disk differences require complete disk sample coverage.
+Up to 12 aggregate results are saved; process names and PIDs are not in history.
 
-KEEP YOUR RECOVERY DATA
-Keep C:\ProgramData\Lean81: it contains original settings. Do not share its
-private receipt JSON; startup commands may contain personal information.
-Preferences and aggregate history are in LocalAppData\Lean81\workspace.json.
-If saving fails, Lean81 shows that choices/results remain in this session.
+UNDO CHANGES
+Open Recovery as administrator under the same Windows account. Check the
+saved states, select a receipt and Restore selected receipt. Independent
+changes stop recovery rather than being overwritten. See RECOVERY.md.
+Keep ProgramData\Lean81 for original settings; do not share private receipts.
+Keep LocalAppData\Lean81 for preferences/history. Existing 0.1-0.3 data works.
 
-Windows 8.1 includes the target .NET Framework 4.5.1. No Python, browser
-engine, installer, runtime download, telemetry or permanent service is needed.
-This is an unsigned preview. Physical Windows 8.1 validation is pending;
-automated tests run on newer Windows. See COMPATIBILITY.md and FEATURES.md.
+MORE
+Desktop effects: three reversible Explorer choices.
+Installed apps: filter software, then use Windows' normal uninstaller.
+Device & storage: hardware, power and available fixed-drive capacity.
+Export report: printable offline HTML; baseline/history are optional.
+Export trace: JSONL or CSV; process names are omitted by default.
+Help & tools: fixed shortcuts including Task Manager and Resource Monitor.
 
-Upgrade: extract the new version into a new folder. Close the previous app.
-Keep ProgramData\Lean81 and LocalAppData\Lean81. Version 0.1 recovery receipts
-remain supported. Demo: Lean81.exe --demo (synthetic; no system/settings writes).
+No Python, installer, bundled browser, RAM cleaner or permanent service.
+Windows 8.1 / .NET Framework 4.5.1 target. The EXE is unsigned. Automated
+checks use newer Windows; physical Windows 8.1 testing remains pending.
+No particular speed improvement is guaranteed. See COMPATIBILITY.md.
 
 Source and releases: https://github.com/HamWebDevs/Lean81
+Demo: Lean81.exe --demo (synthetic data; no Windows settings changed).

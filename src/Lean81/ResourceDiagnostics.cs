@@ -79,7 +79,7 @@ namespace Lean81
     public sealed class ProcessUsage
     {
         public string Name; public int Pid, Samples;
-        public double PeakCpu, CpuSeconds, SeenSeconds, PeakWorkingSet, PeakPrivate, PeakIo;
+        public double PeakCpu, PeakWorkingSet, PeakPrivate, PeakIo;
         public bool HasIo;
     }
     public static class ResourceAnalysis
@@ -116,7 +116,7 @@ namespace Lean81
                 {
                     string key = p.pid + "\n" + p.name + "\n" + p.started_ticks; ProcessUsage item;
                     if (!result.TryGetValue(key, out item)) { item = new ProcessUsage { Name = p.name, Pid = p.pid }; result.Add(key, item); }
-                    item.Samples++; item.SeenSeconds += sample.dt; item.CpuSeconds += p.cpu_pct * sample.dt / 100;
+                    item.Samples++;
                     item.PeakCpu = Math.Max(item.PeakCpu, p.cpu_pct); item.PeakWorkingSet = Math.Max(item.PeakWorkingSet, p.rss_bytes ?? 0); item.PeakPrivate = Math.Max(item.PeakPrivate, p.private_bytes ?? 0);
                     if (p.io_bytes_per_sec.HasValue) { item.HasIo = true; item.PeakIo = Math.Max(item.PeakIo, p.io_bytes_per_sec.Value); }
                 }
@@ -141,6 +141,7 @@ namespace Lean81
             if (cpu < 80 && memory >= 15 && disk < 80) lines.Add("No sustained high CPU, low available RAM or high aggregate disk activity in these samples. Capture again during a freeze; shorter spikes can be missed.");
             if (!disk.HasValue) lines.Add("Disk counters are unavailable on this Windows installation. This is unknown disk activity, not 0%. Resource Monitor can help inspect it.");
             if (!memory.HasValue) lines.Add("Available RAM could not be read; memory pressure is unknown.");
+            if (!cpu.HasValue) lines.Add("CPU readings are unavailable; CPU pressure is unknown.");
             if (!commit.HasValue) lines.Add("Commit readings are unavailable; commit pressure is unknown.");
             lines.Add("Kernel pools are shown for diagnosis. Large values alone do not establish a driver leak. Process working sets can share pages and must not be added together as total RAM.");
             return String.Join(Environment.NewLine + Environment.NewLine, lines);

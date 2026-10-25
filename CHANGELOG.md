@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.0
+
+- Add Quick tune with a browser/cloud-gaming preset and an explicit combined review of unused services and optional desktop effects.
+- Extend optional services to scanning, portable-device synchronization, error reporting and moved-file link tracking; retain usage/dependency protections.
+- Add three allowlisted user desktop DWORD effects with exact original/absent-state journaling and conflict-aware recovery.
+- Capture disk busy/throughput/queue, page-ins, commit usage, kernel CPU/pools/cache, and up to 20 CPU/memory/I/O process leaders per sample.
+- Retain zero-CPU memory-heavy apps, keep reused PIDs separate and provide numeric resource sorting with qualified findings.
+- Add CPU/RAM/disk chart lines with gaps for missing data, resource metrics/coverage in reports and compatible disk comparisons.
+- Preserve existing workspaces, summaries and recovery receipts; new feature answers default to kept.
+- Extend isolated resource/recovery tests, real native capture checks and GUI smoke interactions; keep Windows 8.1 hardware validation separate from modern Windows CI.
+
 ## 0.3.0 — preview
 
 - Redesign local HTML reports with responsive cards, next steps, section navigation, accessible tables and print layout.

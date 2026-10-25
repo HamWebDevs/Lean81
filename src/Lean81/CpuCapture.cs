@@ -65,7 +65,7 @@ namespace Lean81
             using (var writer = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
                 var json = Product.Json();
-                writer.WriteLine(json.Serialize(new { type = "header", schema = 1, version = Product.Version, label = "Lean81 CPU capture", synthetic = Synthetic,
+                writer.WriteLine(json.Serialize(new { type = "header", schema = 1, version = Product.Version, label = "Lean81 resource capture", synthetic = Synthetic,
                     platform = "Windows", backend = "lean81-win32", interval_s = 2, heartbeat_s = 0.05, workload = "On-demand laptop observation; no workload injected",
                     process_names_enabled = includeNames,
                     hardware = new { machine = Environment.Is64BitOperatingSystem ? "x64" : "x86", logical_cpus = LogicalCpus, memory_bytes = MemoryBytes == 0 ? (object)null : MemoryBytes,
@@ -148,8 +148,8 @@ namespace Lean81
                     sample.metrics["kernel_cpu_pct"] = next[2] < times[2] || next[0] < times[0] || next[1] <= times[1] || next[2] - times[2] < next[0] - times[0] ? (object)null : 100.0 * ((next[2] - times[2]) - (next[0] - times[0])) / (next[1] - times[1]);
                     resources.Read(sample.metrics); MemoryDiagnostics.Read(sample.metrics);
                     var memory = new Memory { Length = (uint)Marshal.SizeOf(typeof(Memory)) };
-                    if (GlobalMemoryStatusEx(ref memory)) { result.MemoryBytes = memory.Total; sample.metrics["memory_available_pct"] = memory.Total == 0 ? (object)null : 100.0 * memory.Available / memory.Total; }
-                    else sample.metrics["memory_available_pct"] = null;
+                    if (GlobalMemoryStatusEx(ref memory)) { result.MemoryBytes = memory.Total; sample.metrics["memory_available_pct"] = memory.Total == 0 ? (object)null : 100.0 * memory.Available / memory.Total; sample.metrics["memory_available_bytes"] = memory.Available; }
+                    else { sample.metrics["memory_available_pct"] = null; sample.metrics["memory_available_bytes"] = null; }
                     var power = SystemInformation.PowerStatus.PowerLineStatus;
                     sample.metrics["power"] = power == PowerLineStatus.Online ? "ac" : power == PowerLineStatus.Offline ? "battery" : "unknown";
                     foreach (var pair in processes)

@@ -12,7 +12,7 @@ namespace Lean81
         public static System.Collections.Generic.IList<ScanItem> Build(ScanReport report, UsageProfile profile, bool includeEffects)
         {
             var result = new System.Collections.Generic.List<ScanItem>(); if (report == null) return result;
-            foreach (var item in report.Items.Where(i => i.CanChange && i.Before != null && (i.Kind == "service" || includeEffects && i.Kind == "setting")))
+            foreach (var item in report.Items.Where(i => i.CanChange && i.Before != null && i.Kind == i.Before.Kind && (i.Kind == "service" || includeEffects && i.Kind == "setting")))
             {
                 try { Policy.Validate(item.Before, profile, false); if (item.Before.Exists && item.Before.Enabled) result.Add(item); } catch (InvalidOperationException) { }
             }
@@ -51,7 +51,8 @@ namespace Lean81
             var body = new Panel { Dock = DockStyle.Fill }; pageTab.Controls.Add(body);
             var facts = new TextBox { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, BackColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             var last = capture == null ? null : capture.Samples.LastOrDefault();
-            facts.Text = "Average disk busy: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "disk_busy_pct", 100), "%") + "   ·   throughput: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "disk_bytes_per_sec"), " MiB/s", 1048576) + "   ·   queue: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "disk_queue"), "")
+            facts.Text = "Average RAM available: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "memory_available_pct", 100), "%") + "   ·   latest commit: " + ResourceAnalysis.Format(last == null ? null : ResourceAnalysis.Number(last.metrics, "commit_bytes"), " GiB", 1073741824) + " / " + ResourceAnalysis.Format(last == null ? null : ResourceAnalysis.Number(last.metrics, "commit_limit_bytes"), " GiB", 1073741824)
+                + "\r\nAverage disk busy: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "disk_busy_pct", 100), "%") + "   ·   throughput: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "disk_bytes_per_sec"), " MiB/s", 1048576) + "   ·   queue: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "disk_queue"), "")
                 + "\r\nPeak commit: " + ResourceAnalysis.Format(ResourceAnalysis.Peak(capture, "commit_pct", 100), "%") + "   ·   page-ins: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "pages_input_per_sec"), " pages/s") + "   ·   kernel CPU: " + ResourceAnalysis.Format(ResourceAnalysis.Average(capture, "kernel_cpu_pct", 100), "%")
                 + "\r\nLatest kernel nonpaged / paged: " + ResourceAnalysis.Format(last == null ? null : ResourceAnalysis.Number(last.metrics, "kernel_nonpaged_bytes"), " MiB", 1048576) + " / " + ResourceAnalysis.Format(last == null ? null : ResourceAnalysis.Number(last.metrics, "kernel_paged_bytes"), " MiB", 1048576)
                 + "   ·   cache: " + ResourceAnalysis.Format(last == null ? null : ResourceAnalysis.Number(last.metrics, "system_cache_bytes"), " MiB", 1048576);
@@ -59,7 +60,7 @@ namespace Lean81
             var sort = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 170, Margin = new Padding(0, 4, 12, 0) }; sort.Items.AddRange(new object[] { "Peak CPU", "Working-set RAM", "Private memory", "Read/write I/O" }); sort.SelectedIndex = 0; toolbar.Controls.Add(sort);
             toolbar.Controls.Add(ActionButton("Resource Monitor", (s, e) => OpenTool("resources")));
             var grid = Grid(); grid.ReadOnly = true;
-            foreach (string name in new[] { "Process / PID", "Peak CPU", "RAM MiB", "Private MiB", "I/O MiB/s", "Seen" }) grid.Columns.Add(name, name);
+            foreach (string name in new[] { "Process / PID", "Peak CPU", "RAM MiB", "Private MiB", "I/O MiB/s", "Samples" }) grid.Columns.Add(name, name);
             grid.Columns[0].FillWeight = 28; for (int i = 1; i < grid.Columns.Count; i++) grid.Columns[i].FillWeight = i == 5 ? 10 : 15;
             Action populate = () =>
             {
@@ -67,7 +68,7 @@ namespace Lean81
                 var ordered = processes.OrderByDescending(p => sort.SelectedIndex == 1 ? p.PeakWorkingSet : sort.SelectedIndex == 2 ? p.PeakPrivate : sort.SelectedIndex == 3 ? (p.HasIo ? p.PeakIo : -1) : p.PeakCpu).ThenBy(p => p.Name);
                 foreach (var p in ordered)
                 {
-                    var row = grid.Rows[grid.Rows.Add(p.Name + " / " + p.Pid, p.PeakCpu.ToString("0.0", CultureInfo.InvariantCulture) + "%", (p.PeakWorkingSet / 1048576).ToString("0.0", CultureInfo.InvariantCulture), (p.PeakPrivate / 1048576).ToString("0.0", CultureInfo.InvariantCulture), p.HasIo ? (p.PeakIo / 1048576).ToString("0.0", CultureInfo.InvariantCulture) : "Unknown", p.Samples + " samples")];
+                    var row = grid.Rows[grid.Rows.Add(p.Name + " / " + p.Pid, p.PeakCpu.ToString("0.0", CultureInfo.InvariantCulture) + "%", (p.PeakWorkingSet / 1048576).ToString("0.0", CultureInfo.InvariantCulture), (p.PeakPrivate / 1048576).ToString("0.0", CultureInfo.InvariantCulture), p.HasIo ? (p.PeakIo / 1048576).ToString("0.0", CultureInfo.InvariantCulture) : "Unknown", p.Samples.ToString(CultureInfo.InvariantCulture))];
                     row.Cells[0].ToolTipText = p.Name; row.Cells[4].ToolTipText = "Peak read/write I/O includes file, network and device operations. It is not per-process disk utilization.";
                 }
             };
@@ -96,6 +97,8 @@ namespace Lean81
             var sort = Descendants(content).OfType<ComboBox>().Single(c => c.Items.Count == 4); sort.SelectedIndex = 1;
             grid = Descendants(content).OfType<DataGridView>().First(g => g.Columns.Count == 6);
             if (grid.Rows.Count == 0 || !Convert.ToString(grid.Rows[0].Cells[0].Value, CultureInfo.InvariantCulture).StartsWith("IdleMemoryApp", StringComparison.Ordinal)) throw new InvalidOperationException("Idle memory-heavy process is missing from resource sorting.");
+            chart.Values[3] = null; chart.DiskValues[4] = null;
+            using (var bitmap = new Bitmap(chart.Width, chart.Height)) chart.DrawToBitmap(bitmap, new Rectangle(Point.Empty, chart.Size));
         }
     }
 }

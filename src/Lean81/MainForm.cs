@@ -14,7 +14,7 @@ namespace Lean81
 {
     public sealed class CpuChart : Panel
     {
-        public readonly List<double> Values = new List<double>();
+        public readonly List<double?> Values = new List<double?>();
         public readonly List<double?> MemoryValues = new List<double?>(), DiskValues = new List<double?>();
         public CpuChart() { DoubleBuffered = true; BackColor = Color.White; }
         protected override void OnPaint(PaintEventArgs e)
@@ -29,10 +29,13 @@ namespace Lean81
                     g.DrawString((100 - n * 25).ToString(CultureInfo.InvariantCulture), Font, text, 6, y - 7);
                 }
             if (Values.Count < 2) return;
-            var points = Values.Select((v, i) => new PointF(plot.Left + i * plot.Width / (float)Math.Max(14, Values.Count - 1), plot.Bottom - (float)Math.Max(0, Math.Min(100, v)) / 100 * plot.Height)).ToArray();
-            var area = new List<PointF> { new PointF(points[0].X, plot.Bottom) }; area.AddRange(points); area.Add(new PointF(points[points.Length - 1].X, plot.Bottom));
-            using (var fill = new SolidBrush(Color.FromArgb(30, 15, 145, 125))) g.FillPolygon(fill, area.ToArray());
-            using (var line = new Pen(Color.FromArgb(13, 137, 119), 2.5f)) g.DrawLines(line, points);
+            if (Values.All(v => v.HasValue))
+            {
+                var points = Values.Select((v, i) => new PointF(plot.Left + i * plot.Width / (float)Math.Max(14, Values.Count - 1), plot.Bottom - (float)v.Value / 100 * plot.Height)).ToArray();
+                var area = new List<PointF> { new PointF(points[0].X, plot.Bottom) }; area.AddRange(points); area.Add(new PointF(points[points.Length - 1].X, plot.Bottom));
+                using (var fill = new SolidBrush(Color.FromArgb(30, 15, 145, 125))) g.FillPolygon(fill, area.ToArray());
+            }
+            Series(g, plot, Values, Color.FromArgb(13, 137, 119));
             Series(g, plot, MemoryValues, Color.FromArgb(51, 111, 194)); Series(g, plot, DiskValues, Color.FromArgb(193, 122, 24));
         }
         static void Series(Graphics g, Rectangle plot, IList<double?> values, Color color)
@@ -204,11 +207,11 @@ namespace Lean81
         Action<bool> captureControls;
         async Task StartCapture(int seconds)
         {
-            if (busy) return; workspace.Workload = Product.Clean(workspace.Workload, 80).Trim(); if (workspace.Workload.Length == 0) workspace.Workload = "Normal laptop use"; SaveWorkspace(); capture = null; chart.Values.Clear(); chart.Invalidate(); captureCancel = new CancellationTokenSource();
+            if (busy) return; workspace.Workload = Product.Clean(workspace.Workload, 80).Trim(); if (workspace.Workload.Length == 0) workspace.Workload = "Normal laptop use"; SaveWorkspace(); capture = null; chart.Values.Clear(); chart.MemoryValues.Clear(); chart.DiskValues.Clear(); chart.Invalidate(); captureCancel = new CancellationTokenSource();
             SetBusy(true, "Capturing CPU, memory and disk activity…"); captureControls(true);
             var progress = new Progress<CaptureSample>(sample =>
             {
-                if (chart == null || chart.IsDisposed) return; double cpu = Convert.ToDouble(sample.metrics["cpu_pct"] ?? 0, CultureInfo.InvariantCulture);
+                if (chart == null || chart.IsDisposed) return; double? cpu = ResourceAnalysis.Number(sample.metrics, "cpu_pct", 100);
                 chart.Values.Add(cpu); chart.Invalidate(); var top = sample.processes.FirstOrDefault();
                 var available = ResourceAnalysis.Number(sample.metrics, "memory_available_pct", 100);
                 chart.MemoryValues.Add(available.HasValue ? (double?)(100 - available.Value) : null); chart.DiskValues.Add(ResourceAnalysis.Number(sample.metrics, "disk_busy_pct", 100));
@@ -234,13 +237,13 @@ namespace Lean81
         void ExportCapture()
         {
             if (capture == null || capture.Samples.Count == 0) return;
-            using (var options = new Form { Text = "Export CPU trace", ClientSize = new Size(480, 180), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false, Font = Font })
+            using (var options = new Form { Text = "Export resource trace", ClientSize = new Size(480, 180), FormBorderStyle = FormBorderStyle.FixedDialog, StartPosition = FormStartPosition.CenterParent, MinimizeBox = false, MaximizeBox = false, Font = Font })
             {
                 var text = new Label { Text = "The trace includes CPU, memory, disk counters and process IDs, memory and I/O. Process I/O includes network and devices. No paths or startup commands are exported.", Bounds = new Rectangle(20, 17, 440, 51) }; options.Controls.Add(text);
                 var names = new CheckBox { Text = "Include process names in this export", Bounds = new Rectangle(20, 78, 430, 25) }; options.Controls.Add(names);
                 var save = ActionButton("Choose file…", (s, e) => options.DialogResult = DialogResult.OK, true); save.Bounds = new Rectangle(310, 124, 150, 36); options.Controls.Add(save); options.AcceptButton = save;
                 if (options.ShowDialog(this) != DialogResult.OK) return;
-                using (var dialog = new SaveFileDialog { Filter = "ReclaimLab trace (*.jsonl)|*.jsonl|CPU sample spreadsheet (*.csv)|*.csv", FileName = "lean81-cpu-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture), AddExtension = true })
+                using (var dialog = new SaveFileDialog { Filter = "ReclaimLab trace (*.jsonl)|*.jsonl|Resource sample spreadsheet (*.csv)|*.csv", FileName = "lean81-resources-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture), AddExtension = true })
                     if (dialog.ShowDialog(this) == DialogResult.OK) try { if (dialog.FilterIndex == 2) capture.ExportCsv(dialog.FileName, names.Checked); else capture.Export(dialog.FileName, names.Checked); status.Text = "Capture exported · " + capture.Samples.Count + " samples"; } catch (Exception ex) { Error(ex); }
             }
         }
