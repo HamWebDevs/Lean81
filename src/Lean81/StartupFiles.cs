@@ -134,7 +134,11 @@ namespace Lean81
                 try
                 {
                     var moved = ReadAt(original, backup);
-                    if (moved.Fingerprint() != original.Fingerprint()) throw new IOException("The moved shortcut changed during the operation. Its file is retained for manual recovery.");
+                    // Windows can refresh inherited ACL flags when moving between parents.
+                    // The original descriptor is already in the journal and is restored at
+                    // the original location; backup integrity covers bytes and file metadata.
+                    if (moved.Value != original.Value || moved.FileCreatedUtc != original.FileCreatedUtc || moved.FileModifiedUtc != original.FileModifiedUtc || moved.FileAttributes != original.FileAttributes)
+                        throw new IOException("The moved shortcut's content or file metadata changed. Its file is retained for manual recovery.");
                 }
                 finally { Private(backup); }
             }
