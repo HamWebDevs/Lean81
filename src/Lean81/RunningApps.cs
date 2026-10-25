@@ -158,7 +158,8 @@ namespace Lean81
                 try { using (var p = Process.GetProcessById(approved.Pid)) p.CloseMainWindow(); } catch (InvalidOperationException) { }
                 if (WaitForSingleObject(handle, 700) == 0) return new AppCloseResult { Pid = approved.Pid, Name = approved.Name, Closed = true, Status = "Closed" };
                 if (!force) return new AppCloseResult { Pid = approved.Pid, Name = approved.Name, Status = "Still running; force-close option is available after review" };
-                if (ForegroundFamily() == current.Family) throw new InvalidOperationException("This app moved to the foreground; it was kept.");
+                var beforeForce = Read(handle, approved.Pid);
+                if (beforeForce == null || beforeForce.Started != approved.Started || beforeForce.Owner != approved.Owner || ForegroundFamily() == current.Family) throw new InvalidOperationException("This app's identity, critical or foreground state changed; it was kept.");
                 if (!TerminateProcess(handle, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
                 bool exited = WaitForSingleObject(handle, 1500) == 0;
                 return new AppCloseResult { Pid = approved.Pid, Name = approved.Name, Closed = exited, Status = exited ? "Force closed" : "Exit requested; still finishing I/O" };

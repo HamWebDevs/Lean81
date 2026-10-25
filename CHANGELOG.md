@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+- Make Deep tune the starting page and add a maximum-reduction browser/cloud-gaming preset.
+- Expand optional services to 26 choices and include recognized unused startup/third-party-task categories in one review.
+- Apply service dependency passes under a shared lease; group receipts and restore providers before dependents, with group conflict checks before writes.
+- Move supported Startup-folder shortcuts to protected same-volume backups; restore original content, metadata, ownership and permission rules.
+- Add reviewed same-user/session companion-app closure with creation-time, critical-process and foreground-family protections. Keep normal close and force close distinct.
+- Add an opt-in existing High performance plan with AC preflight and original-scheme recovery.
+- Preserve legacy receipts/workspaces and add isolated dependency/group/app/shortcut policy checks plus disposable native shortcut/process fixtures.
+
 ## 1.0.0
 
 - Add Quick tune with a browser/cloud-gaming preset and an explicit combined review of unused services and optional desktop effects.

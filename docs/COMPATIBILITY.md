@@ -15,7 +15,7 @@ Windows 8.1 is no longer supported by Microsoft. Lean81 does not make the operat
 
 ## Limits
 
-- Startup changes cover string values in HKCU Run and HKLM Run (32/64-bit views). RunOnce, startup-folder shortcuts and StartupApproved metadata are not modified. A registered Run entry may already be blocked by Windows Task Manager.
+- Startup changes cover string values in HKCU Run and HKLM Run (32/64-bit views). RunOnce and StartupApproved metadata are not modified. Version 1.1 adds bounded startup-folder shortcut control as described below. A registered Run entry may already be blocked by Windows Task Manager.
 - Scheduled tasks are bounded to 512 inventory items in total and 12 folder levels. Hidden tasks are included where accessible; Microsoft/system, recognized security and hardware tasks are inspection-only. The task's author, path and XML content inform conservative protection heuristics; these are not a software trust/signature verifier.
 - Optional services are a fixed allowlist. A service with a non-disabled dependent is kept. Some devices have OEM dependencies not visible to Windows service dependency checks; review each tradeoff and test features after a change.
 - App inventory reads traditional uninstall registry entries. Store apps and per-app background permissions are outside this release's scope. Use Programs and Features to uninstall apps yourself.
@@ -59,3 +59,21 @@ API references:
 Desktop Peek location reference: https://learn.microsoft.com/en-us/answers/questions/1282989/prevent-window-from-disapearing-when-hovering-anot
 
 The native CI suite additionally compiles an x86 resource probe and checks pointer-sized memory structures, process I/O and bounded capture in a 32-bit process. This runs on modern Windows and is not a Windows 8.1 hardware test.
+
+## Active tuning in 1.1
+
+The fixed optional-service catalog contains 26 choices. Absent services are skipped; not every choice is installed on Windows 8.1. Deep tune can include a provider only when all its enabled dependents are also selected. The normal backend still refuses an enabled dependent at the moment a service is stopped. Live dependents are an eligibility observation rather than part of the modified configuration fingerprint. An outer journal lease spans the passes; recovery groups preflight pending saved states and restore in reverse sequence.
+
+Startup-folder changes cover regular `.lnk` and `.url` files up to 16 KiB under the current user's or common Startup directory, with supported owner/attributes, no redirected parents and a same-volume protected backup. Original file content, timestamps, ownership and ordered permission rules are preserved. Automatic ACL-inheritance bookkeeping is normalized only for comparison; DACL protection and actual ordered access entries remain checked. No shortcut target is launched or resolved.
+
+Reviewed companion closure uses native query-limited handles, process creation times, token user/session, IsProcessCritical and foreground-family checks. Force closure requires explicit selection in the app. It can interrupt app work; no automatic restart/relaunch is attempted. The recognition catalog is not a signature verifier. Native tests only close their own compiled uniquely located fixture process. IsProcessCritical requires Windows 8.1, matching the target.
+
+The optional High performance choice uses PowerGetActiveScheme, PowerEnumerate and PowerSetActiveScheme. It requires mains at apply time, selects an existing plan and saves the original plan; it persists until changed/restored and has no resident plug/unplug watcher. Native CI reads plans without changing one; transaction tests use an in-memory backend.
+
+References:
+
+- https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-terminateprocess
+- https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-isprocesscritical
+- https://learn.microsoft.com/en-us/windows/win32/api/powersetting/nf-powersetting-powergetactivescheme
+- https://learn.microsoft.com/en-us/windows/win32/api/powersetting/nf-powersetting-powersetactivescheme
+- https://learn.microsoft.com/en-us/windows/win32/api/powrprof/nf-powrprof-powerenumerate

@@ -21,3 +21,11 @@ Existing version 0.1 receipts remain supported because the receipt schema and ea
 ## Desktop effects in 1.0
 
 Desktop changes use the same protected journal and exact-state recovery engine. If a DWORD was absent, recovery removes only the value created by Lean81; if it existed, the exact original DWORD is restored. Existing keys are never recreated. A later independent edit stops recovery. Sign out and back in to refresh Explorer after applying or restoring effects.
+
+## Deep-tune groups and shortcuts in 1.1
+
+Deep-tune passes share a group identity and sequence. Select a group receipt and Restore tune group to check pending entries before writes, then restore the newest pass first. This restores service providers before dependents. A later external change stops the group check. Per-receipt recovery remains available. Apply/restore are sequential operations; failures after writes are recorded and may need manual inspection.
+
+Startup `.lnk`/`.url` files move to ProgramData\Lean81\startup-backups on the same volume. Private receipts retain their original content, timestamps and security descriptor. Restoring checks the backup and refuses a new file at the original name, moves the retained file back, then restores original owner and permission rules. Automatic inheritance bookkeeping flags may change; ordered access rules and DACL protection still participate in conflict checks. Preserve the whole Lean81 ProgramData directory, including startup-backups. If a failed permissions operation leaves a partial state, inspect the receipt before manual repair; do not edit receipts to force recovery.
+
+Power-plan recovery selects the saved original GUID if that scheme still exists. Closed companion apps are not configuration changes and are not relaunched by Recovery. Reopen them yourself; unsaved app work cannot be recovered by Lean81.

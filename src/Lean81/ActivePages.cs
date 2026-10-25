@@ -70,6 +70,11 @@ namespace Lean81
             ShowPage(11); var presets = Descendants(content).OfType<ComboBox>().Single(); presets.SelectedIndex = 5;
             var answers = ReadChecks(Descendants(content).OfType<CheckBox>().Take(FeatureLabels.Length).ToArray());
             if (Product.Json().Serialize(answers) != Product.Json().Serialize(Profiles.Preset(4))) throw new InvalidOperationException("Maximum-reduction answers are not connected to the deep-tune page.");
+            var initial = report.Items.ToDictionary(i => i.Id, i => backend.Read(i.Before).Fingerprint());
+            var engine = new DeepTuneEngine(backend, journals);
+            var tune = engine.Apply(DeepTunePlan.Build(backend.Scan(answers), answers, true, false, true), null);
+            if (tune.Status != "Applied" || tune.Receipts.Count < 2 || engine.Restore(tune.GroupId, null) != tune.Applied) throw new InvalidOperationException("Demo dependency tune/group restore failed.");
+            foreach (var item in report.Items) if (backend.Read(item.Before).Fingerprint() != initial[item.Id]) throw new InvalidOperationException("Demo group restore did not return the original settings.");
             ShowPage(13); var grid = Descendants(content).OfType<DataGridView>().Single();
             if (grid.Rows.Count == 0 || grid.Rows.Cast<DataGridViewRow>().Any(r => ((RunningApp)r.Tag).Foreground && !r.Cells[0].ReadOnly)) throw new InvalidOperationException("Foreground companion protection is missing.");
             var selectedApp = runningApps.First(a => !a.Foreground);
