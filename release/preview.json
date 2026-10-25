@@ -1,6 +1,7 @@
 {
-  "version": "0.3.0",
-  "source_sha": "9e5a123f7a10daad390b2fe13fc7aa656ddf80f5",
+  "version": "1.0.0",
+  "source_sha": "126dc5ad64ebecc0dade66eec82b52dd4a4964d8",
+  "channel": "stable",
   "gui_reviewed": true,
-  "verification_run": 39797022440
+  "verification_run": 40198374061
 }
