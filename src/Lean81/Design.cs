@@ -17,11 +17,11 @@ namespace Lean81
         public static Color Accent { get { return SystemInformation.HighContrast ? SystemColors.Highlight : Color.FromArgb(196, 245, 100); } }
         public static Color OnAccent { get { return SystemInformation.HighContrast ? SystemColors.HighlightText : Color.FromArgb(20, 29, 9); } }
         public static Color Sidebar { get { return SystemInformation.HighContrast ? SystemColors.Control : Color.FromArgb(11, 13, 16); } }
-        public static readonly Font Small = new Font("Segoe UI", 8.5f), Body = new Font("Segoe UI", 9.5f), Strong = new Font("Segoe UI", 9.5f, FontStyle.Bold), Title = new Font("Segoe UI", 25, FontStyle.Bold), Number = new Font("Segoe UI", 27, FontStyle.Bold);
+        public static readonly Font Small = new Font("Segoe UI", 8.5f), Body = new Font("Segoe UI", 9.5f), Strong = new Font("Segoe UI", 9.5f, FontStyle.Bold), Title = new Font("Segoe UI", 25, FontStyle.Bold), Number = new Font("Segoe UI", 27, FontStyle.Bold), CompactNumber = new Font("Segoe UI", 20, FontStyle.Bold);
         public static void Apply(Control root)
         {
             if (root is Form) { root.BackColor = Canvas; root.ForeColor = Text; }
-            else if (root is TextBoxBase) { root.BackColor = Surface; root.ForeColor = Text; }
+            else if (root is TextBoxBase) { root.BackColor = Surface; root.ForeColor = Text; var box = (TextBoxBase)root; if (box.ReadOnly && box.Multiline && !SystemInformation.HighContrast) box.BorderStyle = BorderStyle.None; }
             else if (root is TabPage) { root.BackColor = Surface; root.ForeColor = Text; }
             else if (root is ComboBox) { root.BackColor = Raised; root.ForeColor = Text; }
             else if (root is CheckBox && !(root is FeatureToggle)) { ((CheckBox)root).FlatStyle = FlatStyle.Flat; root.ForeColor = Text; }
@@ -200,7 +200,7 @@ namespace Lean81
             e.Graphics.Clear(Design.Canvas); Design.Box(e.Graphics, ClientRectangle, Design.Surface, Design.Border);
             Design.Glyph(e.Graphics, Glyph, new Rectangle(Width - 35, 16, 17, 17), Design.Muted);
             TextRenderer.DrawText(e.Graphics, Caption ?? "", Design.Small, new Rectangle(16, 15, Width - 54, 21), Design.Muted, TextFormatFlags.EndEllipsis);
-            TextRenderer.DrawText(e.Graphics, Value ?? "—", Design.Number, new Rectangle(12, 35, Width - 26, 51), Design.Text, TextFormatFlags.EndEllipsis);
+            TextRenderer.DrawText(e.Graphics, Value ?? "—", Value != null && Value.Length > 10 ? Design.CompactNumber : Design.Number, new Rectangle(12, 35, Width - 26, 51), Design.Text, TextFormatFlags.EndEllipsis);
             TextRenderer.DrawText(e.Graphics, Detail ?? "", Design.Small, new Rectangle(16, 89, Width - 32, 20), Design.Muted, TextFormatFlags.EndEllipsis);
             if (Ratio.HasValue && Product.Finite(Ratio.Value) && Ratio >= 0 && Ratio <= 1)
             {

@@ -45,12 +45,12 @@ namespace Lean81
             var activity = new SurfacePanel { Dock = DockStyle.Fill, Margin = new Padding(0, 12, 0, 12) };
             var caption = LabelAt("BACKGROUND / LAST SCAN", 8.5f); caption.Height = 28; caption.ForeColor = Design.Accent;
             var detail = LabelAt(report == null ? "Scan this laptop to load its background choices." : report.Items.Count(i => i.Kind == "startup" || i.Kind == "startupfile") + " startup entries   /   " + report.Items.Count(i => i.Kind == "service" && i.Before.Enabled) + " optional services enabled   /   " + runningApps.Count + " recognized processes", 10.5f); detail.Dock = DockStyle.Fill;
-            if (report != null) detail.Text += "\r\n\r\n" + report.Notes.Count + " scan notes. Your selected settings are saved before they change.";
-            if (lastSession != null) detail.Text += "\r\n\r\nLast tune: " + lastSession.Summary();
+            if (report != null) detail.Text += "\r\n\r\n" + (lastSession == null ? report.Notes.Count + " scan notes. Your selected settings are saved before they change." : "Last tune: " + lastSession.Summary());
+            detail.AutoEllipsis = true;
             activity.Controls.Add(detail); activity.Controls.Add(caption);
             var actions = new FlowLayoutPanel { WrapContents = true };
             actions.Controls.Add(ActionButton("Refresh scan", async (s, e) => await Scan())); actions.Controls.Add(ActionButton("Export report…", (s, e) => ExportReport())); actions.Controls.Add(ActionButton("Scan notes", (s, e) => ShowScanNotes())); actions.Controls.Add(ActionButton("Recovery", (s, e) => ShowPage(7)));
-            Rows(body, new Control[] { cards, paths, activity, actions }, 130, 96, -1, 42);
+            Rows(body, new Control[] { cards, new Panel(), paths, new Panel(), activity, new Panel(), actions }, 130, 10, 82, 10, -1, 10, 42);
         }
         static string[] FeatureLabels = { "Printing, including PDF / virtual printers", "Bluetooth devices", "Indexed file and email search", "Touch, pen or the on-screen keyboard", "HomeGroup sharing", "Windows Media Player network sharing", "Offline network files", "Application preloading / Superfetch", "Scanners or camera image-acquisition software", "Portable-device library synchronization", "Windows error reporting and diagnostic assistance", "Shortcuts that track moved files", "Optional diagnostic / experience reporting", "Windows Media Center TV and recordings", "Program compatibility help for older apps", "Automatic Windows diagnostic helpers", "Windows visual themes", "Third-party app update agents", "Local game launchers (Steam / Epic / GOG)", "Cloud-sync companion apps", "Chat companion apps", "Music companion apps" };
         static bool[] FeatureValues(UsageProfile p) { return new[] { p.Printing, p.Bluetooth, p.IndexedSearch, p.TouchKeyboard, p.HomeGroup, p.MediaSharing, p.OfflineFiles, p.Prefetch, p.Scanning, p.PortableDevices, p.ErrorReporting, p.LinkTracking, p.Telemetry, p.MediaCenter, p.Compatibility, p.DiagnosticHelpers, p.Themes, p.AppUpdaters, p.GameLaunchers, p.CloudSync, p.ChatApps, p.MusicApps }; }
