@@ -60,7 +60,9 @@ namespace Lean81
                         {
                             var state = StartupFiles.Read(new ItemState { Kind = "startupfile", Scope = scope, Target = name });
                             var item = Make(state, name, "Shortcut in the " + scope + " startup folder. Its target is never launched or resolved during inspection.", "The shortcut is moved to a private backup, so it will no longer run at sign-in. Recovery restores the original file and permissions.", profile);
-                            item.Feature = StartupRules.Feature(StartupFiles.Text(state)); report.Items.Add(item);
+                            item.Feature = StartupRules.Feature(StartupFiles.Text(state));
+                            string kept = StartupFiles.IneligibleReason(state); if (kept != null) { item.CanChange = false; item.Detail = kept; }
+                            report.Items.Add(item);
                         }
                         catch (Exception ex) { Note(report, "Startup shortcut kept for manual review", ex); }
                     }

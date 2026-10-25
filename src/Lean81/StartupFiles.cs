@@ -85,8 +85,9 @@ namespace Lean81
                 || !DateTime.TryParseExact(state.FileModifiedUtc, "o", CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out modified)
                 || Policy.IsProtectedText(Text(state))) throw new InvalidOperationException("Protected or invalid startup shortcut.");
         }
+        public static string BackupKey(ItemState original) { return Product.Hash(original.Identity() + "\n" + original.Fingerprint()); }
         static string Backup(ItemState original)
-        { return Path.Combine(new JournalStore(Scope).Quarantine(), Scope + "-" + Product.Hash(original.Identity() + "\n" + original.Definition) + ".bin"); }
+        { return Path.Combine(new JournalStore(Scope).Quarantine(), Scope + "-" + BackupKey(original) + ".bin"); }
         static bool SupportedOwner(string security)
         {
             var acl = new FileSecurity(); acl.SetSecurityDescriptorSddlForm(security);
@@ -97,6 +98,11 @@ namespace Lean81
         {
             string root = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
             if (!String.Equals(Path.GetPathRoot(Full(original)), Path.GetPathRoot(root), StringComparison.OrdinalIgnoreCase)) throw new IOException("This startup folder is on a different volume; use Windows Startup controls for it.");
+        }
+        public static string IneligibleReason(ItemState original)
+        {
+            try { CheckVolume(original); return SupportedOwner(original.FileSecurity) ? null : "Kept for manual review: unsupported shortcut owner."; }
+            catch (Exception ex) { return Product.Clean(ex.Message, 180); }
         }
         public static void CheckAccess(ItemState original, bool restoring)
         {
