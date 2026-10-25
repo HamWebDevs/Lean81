@@ -48,13 +48,13 @@ namespace Lean81
         {
             var s = item.Before;
             if (s == null) return "Inventory only";
-            if (!s.Exists || !s.Enabled) return "Already disabled or absent";
+            if (!Policy.NeedsReduction(s)) return "Already reduced or absent";
             if (s.Kind == "setting") return item.CanChange ? "Optional desktop effect; choose individually" : "Unsupported value or missing settings location";
             if (s.Kind == "service")
             {
                 var option = Policy.Services.FirstOrDefault(o => o.Name.Equals(s.Target, StringComparison.OrdinalIgnoreCase));
                 if (option == null) return "Outside the optional-service allowlist";
-                if ((s.Dependents ?? new string[0]).Length > 0) return "Needed by another enabled service";
+                if ((s.Dependents ?? new string[0]).Length > 0) return "Needed by another service";
                 if (profile.Uses(option.Feature)) return "Kept by your usage answers";
                 return item.CanChange ? "You marked this feature unused" : "Kept by the change policy";
             }

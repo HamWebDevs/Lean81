@@ -1,5 +1,11 @@
 # Compatibility
 
+## RC2 desktop rendering
+
+The interface uses C# 5 WinForms and bounded GDI drawing. Icons and the executable mark are drawn from geometry; no downloaded fonts/assets, web view, animations or permanent polling loop are added. Dashboard cards are labelled scan/capture snapshots. Native title bars, scrolling, dialogs and keyboard behavior remain available. The initial window fits the working area subject to its minimum client size.
+
+Feature switches derive from native CheckBox and retain checked state, accessible names/descriptions and default accessibility actions. A manual feature edit clears the preset claim. High-contrast colors use Windows system colors, with native checkbox rendering in that mode. CI exercises the accessibility default action and small-window grouping; real Windows 8.1 scaling, screen-reader and high-contrast validation remains pending.
+
 ## 1.2 candidate additions
 
 The combined tune applies configuration changes before closing selected companions, and skips closure on a settings failure. App identity and foreground state are checked before the settings pass and again by the native backend at closure. Cancellation stops observations and remaining app actions; setting writes are allowed to finish and retain their receipts. Results/short readings stay in memory; configuration recovery persists.

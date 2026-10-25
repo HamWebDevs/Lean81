@@ -1,6 +1,6 @@
 # Releasing the 1.2 candidate
 
-The stable public build remains 1.1. Candidate source and Actions packages use 1.2.0-rc.1. Do not describe modern Windows CI or synthetic screenshots as testing on Windows 8.1 hardware.
+The stable public build remains 1.1. Candidate source and Actions packages use 1.2.0-rc.2. Do not describe modern Windows CI or synthetic screenshots as testing on Windows 8.1 hardware.
 
 ## Automated evidence
 
@@ -12,7 +12,7 @@ Candidate package checks verify executable metadata, portable ZIP round-trip and
 
 Use a backed-up Windows 8.1 installation under the same Windows account. Keep original recovery folders when replacing the EXE.
 
-1. Launch in inspection mode; check small-screen layout, scan notes, missing counters and same-account elevation. Verify keyboard navigation reaches review and cancel.
+1. Launch in inspection mode; check small-screen layout, scan notes, missing counters and same-account elevation. Verify keyboard navigation reaches review and cancel. Check grouped feature switches, custom-preset state, focus indicators, screen-reader actions, high-contrast mode and 100% / 125% / 150% display scaling.
 2. Choose a genuinely unused feature, review the actual installed items and tune. Check networking, audio, keyboard/touchpad, browser and required features. Inspect each result and its recovery group.
 3. Restore that group and verify the feature and its original startup/running state. Test an independent configuration edit causes a recovery conflict instead of overwriting it.
 4. Close one recognized companion with no unsaved work, first normally and then with the separately reviewed force option if needed. Verify the browser and foreground family remain running, then reopen the companion manually.

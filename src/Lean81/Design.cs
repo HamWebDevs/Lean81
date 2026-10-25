@@ -63,6 +63,8 @@ namespace Lean81
                 else if (kind == 13 || kind == 5) { g.DrawRectangle(p, 2, 3, 11, 10); g.DrawRectangle(p, 7, 8, 11, 10); }
                 else if (kind == 3) { g.DrawEllipse(p, 3, 3, 14, 14); g.DrawLines(p, new[] { new Point(10, 6), new Point(10, 10), new Point(14, 12) }); }
                 else if (kind == 8) { g.DrawRectangle(p, 2, 3, 16, 11); g.DrawLine(p, 10, 14, 10, 18); g.DrawLine(p, 6, 18, 14, 18); }
+                else if (kind == 15) { g.DrawRectangle(p, 2, 6, 16, 10); g.DrawLine(p, 2, 11, 18, 11); g.DrawEllipse(p, 14, 13, 1, 1); }
+                else if (kind == 16) { g.DrawRectangle(p, 5, 4, 10, 12); for (int y = 6; y <= 14; y += 4) { g.DrawLine(p, 2, y, 5, y); g.DrawLine(p, 15, y, 18, y); } }
                 else if (kind == 0) { g.DrawRectangle(p, 2, 2, 6, 6); g.DrawRectangle(p, 12, 2, 6, 6); g.DrawRectangle(p, 2, 12, 6, 6); g.DrawRectangle(p, 12, 12, 6, 6); }
                 else if (kind == 2) { g.DrawArc(p, 3, 3, 14, 14, -60, 300); g.DrawLine(p, 10, 1, 10, 10); }
                 else if (kind == 10) { g.DrawEllipse(p, 3, 3, 14, 14); g.DrawLine(p, 10, 9, 10, 14); g.DrawLine(p, 10, 6, 10, 6.5f); }
@@ -143,14 +145,17 @@ namespace Lean81
     }
     public sealed class PresetControl : Button
     {
-        public string Caption; public bool Selected;
+        public string Caption; public bool Selected, Launch; bool hover;
         public PresetControl() { SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true); FlatStyle = FlatStyle.Flat; FlatAppearance.BorderSize = 0; Cursor = Cursors.Hand; }
+        protected override void OnMouseEnter(EventArgs e) { hover = true; Invalidate(); base.OnMouseEnter(e); }
+        protected override void OnMouseLeave(EventArgs e) { hover = false; Invalidate(); base.OnMouseLeave(e); }
         protected override void OnPaint(PaintEventArgs e)
         {
-            e.Graphics.Clear(Design.Canvas); Design.Box(e.Graphics, Rectangle.Inflate(ClientRectangle, -1, -1), Design.Surface, Selected ? Design.Accent : Design.Border);
+            e.Graphics.Clear(Design.Canvas); Design.Box(e.Graphics, Rectangle.Inflate(ClientRectangle, -1, -1), hover ? Design.Raised : Design.Surface, Selected || Launch || hover ? Design.Accent : Design.Border);
             TextRenderer.DrawText(e.Graphics, Text, Design.Strong, new Rectangle(13, 12, Width - 36, 24), Selected ? Design.Accent : Design.Text, TextFormatFlags.NoPrefix);
             TextRenderer.DrawText(e.Graphics, Caption ?? "", Design.Small, new Rectangle(13, 37, Width - 23, 22), Design.Muted, TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
             if (Selected) using (var b = new SolidBrush(Design.Accent)) e.Graphics.FillEllipse(b, Width - 21, 17, 6, 6);
+            if (Launch) using (var p = new Pen(Design.Accent, 1.5f)) { e.Graphics.DrawLine(p, Width - 29, 22, Width - 16, 22); e.Graphics.DrawLines(p, new[] { new Point(Width - 21, 17), new Point(Width - 16, 22), new Point(Width - 21, 27) }); }
             if (Focused && ShowFocusCues) ControlPaint.DrawFocusRectangle(e.Graphics, Rectangle.Inflate(ClientRectangle, -5, -5), Design.Accent, Design.Surface);
         }
     }

@@ -59,7 +59,7 @@ namespace Lean81
             middle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); middle.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 230));
             featureTabs.Margin = new Padding(0, 0, 14, 0); featureTabs.Dock = DockStyle.Fill; middle.Controls.Add(featureTabs, 0, 0);
             var summary = new SurfacePanel { Dock = DockStyle.Fill, Margin = Padding.Empty, Padding = new Padding(12, 10, 12, 8) }; middle.Controls.Add(summary, 1, 0);
-            var title = LabelAt("IN THIS REVIEW", 8.5f); title.ForeColor = Design.Accent;
+            var title = LabelAt("TUNE PREVIEW", 8.5f); title.ForeColor = Design.Accent;
             var counts = LabelAt("Scan to load the choices", 10.5f); counts.ForeColor = Ink;
             var effects = new CheckBox { Text = "Reduce desktop effects", AutoSize = true, Checked = true, Margin = new Padding(0, 4, 0, 3) };
             var startup = new CheckBox { Text = "Include startup items", AutoSize = true, Checked = true, Margin = new Padding(0, 4, 0, 3) };
@@ -72,7 +72,7 @@ namespace Lean81
             tips.SetToolTip(closeApps, "Choose which recognized companions to close in the review. Normal close is the default; force close is explicit.");
             tips.SetToolTip(power, "Mains power is required. An existing High performance plan can use more heat and energy, and stays selected until changed or restored.");
             var safe = LabelAt("Security, networking and core Windows services stay protected.", 8.5f); safe.AutoEllipsis = true;
-            Rows(summary, new Control[] { title, counts, options, safe }, 24, 64, 112, -1);
+            Rows(summary, new Control[] { title, counts, options, safe }, 22, 80, 108, -1);
             var actionRow = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Padding = new Padding(0, 10, 0, 0), Margin = Padding.Empty };
             actionRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); actionRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
@@ -99,7 +99,7 @@ namespace Lean81
                 {
                     var answers = ReadChecks(checks); var plan = DeepTunePlan.Build(report, answers, effects.Checked, power.Checked, startup.Checked);
                     int apps = closeApps.Checked ? TuneSessionEngine.SuggestApps(runningApps, answers).Count : 0;
-                    counts.Text = plan.Items.Count(i => i.Kind == "service").ToString("00", CultureInfo.InvariantCulture) + "   services\r\n" + plan.Items.Count(i => i.Kind == "startup" || i.Kind == "startupfile" || i.Kind == "task").ToString("00", CultureInfo.InvariantCulture) + "   startup items\r\n" + apps.ToString("00", CultureInfo.InvariantCulture) + "   running processes";
+                    counts.Text = plan.Items.Count(i => i.Kind == "service").ToString("00", CultureInfo.InvariantCulture) + "   services\r\n" + plan.Items.Count(i => i.Kind == "startup" || i.Kind == "startupfile" || i.Kind == "task").ToString("00", CultureInfo.InvariantCulture) + "   startup items\r\n" + apps.ToString("00", CultureInfo.InvariantCulture) + "   running processes\r\n" + plan.Items.Count(i => i.Kind == "setting" || i.Kind == "power").ToString("00", CultureInfo.InvariantCulture) + "   desktop / power";
                     if (presets.SelectedIndex == 5) note.Text = "Maximum reduction can affect printing, Bluetooth and launch times. Disabled app updaters need manual updates. Review every choice.";
                     else note.Text = lastTune ?? "KEEP = used or uncertain. UNUSED = eligible for this review.";
                 }
