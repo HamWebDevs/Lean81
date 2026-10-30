@@ -13,67 +13,6 @@ namespace Lean81
     public sealed partial class MainForm
     {
         TuneSessionResult lastSession;
-        bool ReviewSession(TuneSessionRequest request, string screenshot = null)
-        {
-            using (var dialog = new StyledDialog { Text = "Review deep tune", ClientSize = new Size(800, 570), MinimumSize = new Size(720, 530), StartPosition = FormStartPosition.CenterParent, Font = Font, BackColor = Canvas, Padding = new Padding(18), MinimizeBox = false, MaximizeBox = false })
-            {
-                var explanation = new Label { Text = "Review the settings and choose which running companions to close. Services stop now and stay disabled. Startup changes affect future launches. Closed apps must be reopened manually.", ForeColor = Ink };
-                var tabs = new DesignTabs(); var settingsTab = new TabPage("Settings (" + request.Settings.Items.Count + ")"); var appsTab = new TabPage("Close apps now"); tabs.TabPages.Add(settingsTab); tabs.TabPages.Add(appsTab);
-                settingsTab.Controls.Add(new TextBox { Dock = DockStyle.Fill, Multiline = true, ReadOnly = true, BackColor = Color.White, ScrollBars = ScrollBars.Vertical,
-                    Text = request.Settings.Items.Count == 0 ? "No settings to change in this review. You can still close reviewed background apps." : String.Join(Environment.NewLine + Environment.NewLine, request.Settings.Items.Select(i => i.Name + " · " + i.Scope + " / " + i.Kind + "\r\n" + i.Before.Target + "\r\n" + i.Tradeoff).Concat(request.Settings.Kept.Select(k => "KEPT: " + k))) });
-                var appsBody = new Panel { Dock = DockStyle.Fill }; appsTab.Controls.Add(appsBody);
-                var grid = Grid(); grid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "Close", Width = 52, AutoSizeMode = DataGridViewAutoSizeColumnMode.None });
-                grid.Columns.Add("App", "Companion / PID"); grid.Columns.Add("Memory", "RAM MiB"); grid.Columns.Add("Path", "Executable");
-                for (int i = 1; i < grid.Columns.Count; i++) grid.Columns[i].ReadOnly = true;
-                grid.Columns[1].FillWeight = 30; grid.Columns[2].FillWeight = 15; grid.Columns[3].FillWeight = 55;
-                foreach (var app in request.Apps) grid.Rows[grid.Rows.Add(true, app.Name + " / " + app.Pid, (app.Memory / 1048576.0).ToString("0.0", CultureInfo.InvariantCulture), app.Path)].Tag = app;
-                grid.CurrentCellDirtyStateChanged += (s, e) => { if (grid.IsCurrentCellDirty) grid.CommitEdit(DataGridViewDataErrorContexts.Commit); };
-                var appNote = new Label { Text = request.Apps.Count == 0 ? "No recognized background companions match the unused categories. Browsers, Windows and foreground families are kept." : "Uncheck any app you need. Closing can interrupt sync, downloads, calls, music or unsaved app state. RAM working sets can include shared pages." };
-                var appActions = new FlowLayoutPanel();
-                var keepAll = ActionButton("Keep all apps", (s, e) => { grid.EndEdit(); foreach (DataGridViewRow row in grid.Rows) row.Cells[0].Value = false; }); appActions.Controls.Add(keepAll);
-                var force = new CheckBox { Text = "Force close selected apps if normal close fails (includes tray / helpers)", AutoSize = true, Margin = new Padding(0, 9, 0, 0) };
-                Rows(appsBody, new Control[] { appNote, grid, appActions }, 52, -1, 45);
-                var options = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false };
-                options.Controls.Add(force);
-                var readings = new CheckBox { Text = "Check CPU, RAM and disk before / after (about 18 seconds; stays inside Lean81)", AutoSize = true, Checked = request.Measure };
-                options.Controls.Add(readings);
-                var summary = new Label { AutoSize = true, ForeColor = Muted, Padding = new Padding(0, 5, 0, 0) }; options.Controls.Add(summary);
-                var controls = new FlowLayoutPanel { WrapContents = true };
-                var apply = ActionButton(request.Settings.Items.Count != 0 && !backend.IsAdministrator ? "Enable changes & rescan" : "Apply reviewed tune", (s, e) =>
-                {
-                    grid.EndEdit();
-                    var chosen = grid.Rows.Cast<DataGridViewRow>().Where(r => Convert.ToBoolean(r.Cells[0].Value)).Select(r => TuneSessionEngine.Copy((RunningApp)r.Tag)).ToList();
-                    if (request.Settings.Items.Count + chosen.Count == 0) { summary.Text = "Choose at least one app or cancel this review."; return; }
-                    request.Apps = chosen; request.Force = force.Checked && chosen.Count != 0; request.Measure = readings.Checked;
-                    dialog.DialogResult = DialogResult.OK;
-                }, true);
-                var cancel = ActionButton("Cancel", (s, e) => dialog.DialogResult = DialogResult.Cancel); controls.Controls.Add(apply); controls.Controls.Add(cancel);
-                Action update = () => { int count = grid.Rows.Cast<DataGridViewRow>().Count(r => Convert.ToBoolean(r.Cells[0].Value)); force.Enabled = count != 0; if (count == 0) force.Checked = false; summary.Text = request.Settings.Items.Count + " settings · " + count + " processes · " + (force.Checked ? "FORCE close may lose app work" : "Normal close requests only"); };
-                grid.CellValueChanged += (s, e) => update(); force.CheckedChanged += (s, e) => update(); update();
-                var body = new Panel { Dock = DockStyle.Fill }; Rows(body, new Control[] { explanation, tabs, options, controls }, 65, -1, 95, 45); dialog.Controls.Add(body); dialog.CancelButton = cancel;
-                dialog.Shown += (s, e) => cancel.Focus();
-                using (var timer = new System.Windows.Forms.Timer { Interval = 180 })
-                {
-                    if (screenshot != null)
-                    {
-                        tabs.SelectedTab = appsTab;
-                        timer.Tick += (s, e) =>
-                        {
-                            timer.Stop(); if (force.Checked || !readings.Checked) throw new InvalidOperationException("Review defaults changed.");
-                            using (var image = new Bitmap(dialog.Width, dialog.Height)) { dialog.DrawToBitmap(image, new Rectangle(Point.Empty, dialog.Size)); image.Save(screenshot, System.Drawing.Imaging.ImageFormat.Png); }
-                            if (grid.Rows.Count != 0)
-                            {
-                                force.Checked = true; keepAll.PerformClick();
-                                if (force.Checked || force.Enabled || grid.Rows.Cast<DataGridViewRow>().Any(r => Convert.ToBoolean(r.Cells[0].Value))) throw new InvalidOperationException("Keeping every app left a force-close selection enabled.");
-                            }
-                            dialog.DialogResult = DialogResult.Cancel;
-                        };
-                        dialog.Shown += (s, e) => timer.Start();
-                    }
-                    return dialog.ShowDialog(this) == DialogResult.OK;
-                }
-            }
-        }
         async Task ApplySession(TuneSessionRequest request)
         {
             if (request.Settings.Items.Count != 0 && !backend.IsAdministrator) { Elevate(); return; }
@@ -146,7 +85,9 @@ namespace Lean81
             var settings = DeepTunePlan.Build(backend.Scan(UnusedProfile()), UnusedProfile(), true, false, true);
             var request = new TuneSessionRequest { Settings = settings, Apps = TuneSessionEngine.SuggestApps(runningBackend.Scan(), UnusedProfile()) };
             int appCount = request.Apps.Count;
+            string keepBefore = Product.Json().Serialize(workspace.KeptTuneItems);
             if (ReviewSession(request, Path.Combine(folder, "deep-review.png")) || request.Force || request.Apps.Count != appCount) throw new InvalidOperationException("Cancelled tune review mutated its request.");
+            if (keepBefore != Product.Json().Serialize(workspace.KeptTuneItems) || request.Settings != settings) throw new InvalidOperationException("Cancelled tune review saved keep choices or replaced its plan.");
             lastSession = new TuneSessionEngine(backend, journals, runningBackend, t => CaptureResult.Demo(), t => { }).Run(request, CancellationToken.None, null);
             if (lastSession.Status != "Applied" || lastSession.Settings == null || lastSession.Settings.Applied != settings.Items.Count || lastSession.Apps.Any(a => !a.Closed)) throw new InvalidOperationException("Combined tune did not complete.");
             status.Text = lastSession.Summary();

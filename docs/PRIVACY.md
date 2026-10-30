@@ -22,3 +22,8 @@ To remove a saved result, use **Saved results & baseline → Delete selected res
 Version 1.1 also holds recognized running companion names, executable paths, owner SIDs, sessions, PID/creation-time identities and working-set readings in memory for reviewed closure. These are not added to aggregate capture history or uploaded. Startup backup files remain inside the protected ProgramData directory until restored; preserve that directory with its private receipts. No profile-derived apply plan is imported into the elevated process.
 
 The 1.2 combined-tune result and its optional short before/after observations also stay in app memory. They include per-action settings/app outcomes and after-check process leaders. They are not automatically exported, uploaded or added to workspace history. The configuration changes still create private persistent recovery receipts; closing Lean81 discards the result display, not those receipts.
+
+The 1.2 selective-review keep list stores only bounded SHA-256 hashes of setting
+identities in the existing local workspace. It stores no additional startup
+commands or executable plans and is excluded from shareable reports. Hashes are
+local matching identifiers, not encryption or a guarantee of anonymization.

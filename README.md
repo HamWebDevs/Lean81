@@ -6,19 +6,29 @@ Lean81 stops reviewed unused services, prevents recognized background software f
 
 [Download Lean81 1.1](https://github.com/HamWebDevs/Lean81/releases/tag/v1.1.0) · [Quick start](docs/QUICKSTART.txt) · [Deep-tune guide](docs/FEATURES.md) · [Recovery](docs/RECOVERY.md)
 
-**Latest preview: [1.2.0-rc.2](https://github.com/HamWebDevs/Lean81/releases/tag/v1.2.0-rc.2).** A redesigned charcoal-and-lime interface with grouped feature switches, preset cards, a snapshot dashboard and one reviewed tuning workflow. [Candidate notes](docs/RELEASE-1.2.0-rc.2.md) · [Release validation plan](docs/RELEASE-READINESS.md). Screenshots use synthetic data.
+**Latest preview: [1.2.0-rc.3](https://github.com/HamWebDevs/Lean81/releases/tag/v1.2.0-rc.3).** Individual setting checkboxes, a saved keep list and dependency-aware exclusions inside the charcoal-and-lime tuning interface. [Candidate notes](docs/RELEASE-1.2.0-rc.3.md) · [Release validation plan](docs/RELEASE-READINESS.md). Screenshots use synthetic data.
 
 ![Deep tune with synthetic data](docs/screenshots/deep-tune.png)
 
 ## Start here
 
-1. Extract the preview **Lean81-1.2.0-rc.2-portable.zip** and open **Lean81.exe**.
+1. Extract the preview **Lean81-1.2.0-rc.3-portable.zip** and open **Lean81.exe**.
 2. From **Dashboard**, open **Deep tune**. Choose **Keep all**, **Browser & cloud games** or **Maximum reduction**, then keep anything you use. **KEEP** retains a feature; **UNUSED** makes it eligible for review. Maximum reduction assumes: this preset assumes no printing, Bluetooth, indexing, Superfetch, TV, sync, chat or local game launchers. Compatibility assistance and Windows themes stay kept unless you opt out.
-3. Choose **Review tune**, read **Settings** and **Close apps now**, and uncheck any companion you need. Normal close is the default; force close is an explicit choice. If administrator permission is needed for settings, use the same Windows account and build the review again after elevation.
+3. Choose **Review tune**, read **Settings** and **Close apps now**. Uncheck any setting or companion you need. Keeping a dependent service also keeps its required provider. **Remember kept settings** saves exclusions for the next deep tune; you can re-include items in the review or use **Clear kept items** on Deep tune. Normal close is the default; force close is an explicit choice. If administrator permission is needed for settings, use the same Windows account and build the review again after elevation.
 4. Apply the review. Services stop now and stay disabled; startup changes prevent future launches; selected companions receive close requests. Optional short resource checks run inside Lean81, with each result in **Tune result**. Keep your workload similar during both observations.
 5. Use **Tune result → Restore this tune** or **Recovery → Restore tune group** to undo saved settings. Closed apps and their unsaved state are not restored automatically; reopen apps yourself. **Running apps** remains available for separate closure.
 
 No capture, external analysis app or trace export is needed to tune the laptop.
+
+## New in this preview
+
+- **Choose every setting:** the final review has individual checkboxes and shows exactly which services, startup entries, tasks, effects or power choices will change.
+- **Keep what matters:** retain an item without changing its whole feature category. Saved exclusions start unchecked on the next deep tune; recheck a row to include it again.
+- **Dependency-aware exclusions:** keeping a service retains all required providers in the proposed tune. The summary updates to match the actual selected actions.
+- **Save choices on their own:** keep all settings and apps, then choose **Save keep list**. No Windows setting changes. Cancelling discards staged edits.
+- **Timing and tradeoffs:** each row distinguishes stop-now actions, future sign-in launches, scheduled runs, desktop refresh and the active power plan.
+
+Saved exclusions apply to Deep tune. The separate Startup apps, Optional services and Desktop effects pages remain explicit individual workflows.
 
 ## What changed in 1.1
 

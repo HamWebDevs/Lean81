@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0-rc.3 · 2026-10-30
+
+- Replace the all-or-nothing settings review with individual checkboxes, action timing, target details and tradeoffs. Companion closure remains a separate tab with normal-close defaults.
+- Keep required service providers when an individual dependent is retained, including transitive dependencies. Selections only remove actions from a fresh plan; native policy and fresh-state checks still run before writes.
+- Remember unchecked setting identities in a bounded local keep list. Show exclusions in the next review, allow individual re-inclusion, and clear them from Deep tune. Store only identity hashes, never startup commands or an executable plan.
+- Allow saving keep choices without applying a Windows change. Cancel preserves both the proposed action plan and saved preferences. Keep-list changes do not restore settings that were already tuned.
+- Add isolated selection, workspace migration, persistence, freshness and recovery tests plus actual Windows Forms review interaction/screenshots. Windows 8.1 hardware validation remains pending; publish as a preview.
+
 ## 1.2.0-rc.2 — interface preview
 
 - Redesign the desktop interface in charcoal and lime with drawn icons, grouped navigation, consistent buttons, tables, tabs, charts and dialogs.

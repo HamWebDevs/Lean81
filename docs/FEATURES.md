@@ -110,3 +110,32 @@ Up to 12 aggregate results are retained, including the chosen baseline. New summ
 Close the old app and extract the new ZIP into a new folder. Keep `%ProgramData%\Lean81` for original settings and `%LocalAppData%\Lean81` for preferences/history. Receipts and workspaces from 0.1–1.0 remain supported. New feature answers default to kept when absent from older preferences.
 
 The EXE is unsigned and targets Windows 8.1 / .NET Framework 4.5.1. Automated checks use newer Windows; physical Windows 8.1 validation is pending. See [COMPATIBILITY.md](COMPATIBILITY.md) and [PRIVACY.md](PRIVACY.md).
+
+## Selective deep-tune review and saved keep list
+
+The 1.2.0-rc.3 preview replaces the settings text list with an editable review.
+Each row has an Apply checkbox, type and scope, and the timing of the change.
+Select a row for its target and tradeoff. Unchecking removes that action from
+the fresh proposal. If a retained service depends on another proposed service,
+the required provider is also unchecked, transitively, with a reason. Neither
+selection nor dependency handling adds targets to the proposed plan. Normal
+policy, native dependency checks, state freshness and journal recovery still
+apply to the final subset.
+
+**Remember kept settings** is checked initially. Accepting the review remembers
+all unchecked setting identities, including automatically retained providers.
+The next deep-tune review offers the current installed candidates with saved
+keeps unchecked. Recheck one to include it again, choose **Use feature choices**
+to check the full proposal, or use **Clear kept items** on Deep tune. Unchecking
+Remember leaves previously saved choices unchanged. Unseen keep entries are
+preserved, so a temporarily absent startup item remains kept if it returns.
+The keep list holds at most 512 SHA-256 identity hashes; it contains no commands,
+paths, saved before-states or permission to apply. It is local to the Windows
+user's workspace.
+
+**Keep all settings** and **Keep all apps** exposes **Save keep list**. This only
+saves preferences. Cancelling the review saves no exclusion edits and leaves
+the request unchanged. Saved keeps apply to Deep tune, not separately reviewed
+manual actions on inventory pages. They do not undo changes that were already
+applied; use Recovery to restore saved Windows settings. Companion closure is
+reviewed afresh each time and is not stored in this setting keep list.

@@ -54,6 +54,7 @@ namespace Lean81
                 tiles[i].Click += (s, e) => presets.SelectedIndex = presetIndices[index]; presetRow.Controls.Add(tiles[i], i, 0);
             }
             var presetOptions = new FlowLayoutPanel(); presetOptions.Controls.Add(new Label { Text = "Starting point", AutoSize = true, ForeColor = Muted, Font = Design.Small, Padding = new Padding(0, 8, 12, 0) }); presetOptions.Controls.Add(presets);
+            var clearKept = ActionButton("Clear kept items (" + workspace.KeptTuneItems.Count + ")", (s, e) => { }); presetOptions.Controls.Add(clearKept);
             var middle = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Margin = Padding.Empty };
             middle.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
             middle.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); middle.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 230));
@@ -97,16 +98,20 @@ namespace Lean81
                 if (report == null) { counts.Text = "Scan to load the choices"; return; }
                 try
                 {
-                    var answers = ReadChecks(checks); var plan = DeepTunePlan.Build(report, answers, effects.Checked, power.Checked, startup.Checked);
+                    var answers = ReadChecks(checks); var plan = TuneSelection.WithKeepList(DeepTunePlan.Build(report, answers, effects.Checked, power.Checked, startup.Checked), workspace.KeptTuneItems);
                     int apps = closeApps.Checked ? TuneSessionEngine.SuggestApps(runningApps, answers).Count : 0;
                     counts.Text = plan.Items.Count(i => i.Kind == "service").ToString("00", CultureInfo.InvariantCulture) + "   services\r\n" + plan.Items.Count(i => i.Kind == "startup" || i.Kind == "startupfile" || i.Kind == "task").ToString("00", CultureInfo.InvariantCulture) + "   startup items\r\n" + apps.ToString("00", CultureInfo.InvariantCulture) + "   running processes\r\n" + plan.Items.Count(i => i.Kind == "setting" || i.Kind == "power").ToString("00", CultureInfo.InvariantCulture) + "   desktop / power";
                     if (presets.SelectedIndex == 5) note.Text = "Maximum reduction can affect printing, Bluetooth and launch times. Disabled app updaters need manual updates. Review every choice.";
                     else note.Text = lastTune ?? "KEEP = used or uncertain. UNUSED = eligible for this review.";
+                    if (workspace.KeptTuneItems.Count != 0) note.Text = workspace.KeptTuneItems.Count + " saved keep choices. Recheck them in Review tune. " + note.Text;
                 }
                 catch (InvalidOperationException) { counts.Text = "Too many choices.\r\nReview smaller groups."; }
             };
             foreach (var check in checks.Concat(new[] { effects, startup, closeApps, power })) check.CheckedChanged += (s, e) => refresh();
-            presets.SelectedIndexChanged += (s, e) => refresh(); refresh();
+            clearKept.Click += (s, e) => { workspace.KeptTuneItems.Clear(); bool saved = SaveWorkspace(); refresh(); status.Text = saved ? "Saved keep list cleared · no Windows settings changed" : preferencesNotice; };
+            presets.SelectedIndexChanged += (s, e) => refresh();
+            Action updateKept = () => { clearKept.Text = "Clear kept items (" + workspace.KeptTuneItems.Count + ")"; clearKept.Enabled = workspace.KeptTuneItems.Count != 0; };
+            clearKept.Click += (s, e) => updateKept(); updateKept(); refresh();
             Rows(body, new Control[] { presetRow, presetOptions, middle, actionRow }, 78, 42, -1, 58);
         }
     }

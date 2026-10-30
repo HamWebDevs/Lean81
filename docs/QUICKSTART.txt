@@ -1,4 +1,4 @@
-Lean81 1.2.0-rc.2 - HamWebDevs - release candidate
+Lean81 1.2.0-rc.3 - HamWebDevs - release candidate
 
 ACTIVELY REDUCE BACKGROUND LOAD
 1. Extract the portable ZIP and open Lean81.exe.
@@ -62,3 +62,19 @@ remain pending. No particular speed increase is guaranteed.
 Guide: FEATURES.md. Compatibility: COMPATIBILITY.md. Recovery: RECOVERY.md.
 Source and releases: https://github.com/HamWebDevs/Lean81
 Demo: Lean81.exe --demo (synthetic data; no real apps or settings changed).
+
+INDIVIDUAL KEEP CHOICES (1.2 PREVIEW)
+In Review tune > Settings, leave Apply checked only for settings you want to
+change. Uncheck an item to keep it. Keeping a dependent also keeps its required
+service providers; check the updated count and What happens column. Select a
+row for its exact target and tradeoff.
+
+Remember kept settings saves unchecked setting identities for the next deep
+tune. Recheck a saved row to include it again, or clear the whole list with
+Deep tune > Clear kept items. Presets do not erase your keep list. These choices
+only affect Deep tune; separate inventory-page actions are reviewed separately.
+
+Keep all settings and Keep all apps changes the main action to Save keep list.
+This saves preferences without tuning Windows. Cancel discards staged edits.
+Changing keep choices does not restore settings that were already disabled;
+use Recovery for that. Closed apps are always reopened manually.

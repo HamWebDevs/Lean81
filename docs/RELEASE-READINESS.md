@@ -1,10 +1,10 @@
 # Releasing the 1.2 candidate
 
-The stable public build remains 1.1. Candidate source and Actions packages use 1.2.0-rc.2. Do not describe modern Windows CI or synthetic screenshots as testing on Windows 8.1 hardware.
+The stable public build remains 1.1. Candidate source and Actions packages use 1.2.0-rc.3. Do not describe modern Windows CI or synthetic screenshots as testing on Windows 8.1 hardware.
 
 ## Automated evidence
 
-Run `scripts/build.ps1 -Test -Native -Gui -Package` on an ephemeral Windows runner with `LEAN81_NATIVE_FIXTURES=ephemeral-ci`. Required evidence includes successful .NET 4.5.1 compilation, policy/transaction/dependency/orchestration tests, disposable native Run/task/shortcut/process/service fixtures, x86 read-only resource ABI checks, GUI smoke at both sizes and browser report checks. Inspect the combined review and result screenshots, not only the smoke marker. Never toggle an installed service, existing task or unrelated process for tests.
+Run `scripts/build.ps1 -Test -Native -Gui -Package` on an ephemeral Windows runner with `LEAN81_NATIVE_FIXTURES=ephemeral-ci`. Required evidence includes successful .NET 4.5.1 compilation, policy/transaction/dependency/orchestration tests, disposable native Run/task/shortcut/process/service fixtures, x86 read-only resource ABI checks, GUI smoke at both sizes and browser report checks. Inspect the selective settings review, companion review and result screenshots, not only the smoke marker. Check individual selections, transitive dependency keeps, keep-list save/clear/re-include behavior and cancellation. Never toggle an installed service, existing task or unrelated process for tests.
 
 Candidate package checks verify executable metadata, portable ZIP round-trip and SHA256 sums. Source, numeric assembly version, informational candidate version, package names and release notes must agree. Stable publication rejects an `-rc.N` version. Existing release tags are never overwritten.
 

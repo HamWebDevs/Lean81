@@ -145,7 +145,8 @@ namespace Lean81
         public string Workload { get; set; }
         public string BaselineId { get; set; }
         public List<CaptureSummary> History { get; set; }
-        public UserWorkspace() { Schema = 1; Profile = new UsageProfile(); Workload = "Normal laptop use"; History = new List<CaptureSummary>(); }
+        public List<string> KeptTuneItems { get; set; }
+        public UserWorkspace() { Schema = 1; Profile = new UsageProfile(); Workload = "Normal laptop use"; History = new List<CaptureSummary>(); KeptTuneItems = new List<string>(); }
         public void Add(CaptureSummary result)
         {
             CaptureSummary.Validate(result); History.RemoveAll(s => s.Id == result.Id); History.Insert(0, result);
@@ -159,6 +160,7 @@ namespace Lean81
             if (value == null || value.Schema != 1 || value.Profile == null || value.History == null || value.History.Count > 12 || value.Workload == null || value.Workload.Length > 80 || value.Workload.Any(Char.IsControl)) throw new InvalidOperationException("Unsupported workspace settings.");
             foreach (var summary in value.History) CaptureSummary.Validate(summary);
             if (value.History.Select(s => s.Id).Distinct(StringComparer.Ordinal).Count() != value.History.Count || value.BaselineId != null && !value.History.Any(s => s.Id == value.BaselineId)) throw new InvalidOperationException("Invalid saved result identities.");
+            TuneSelection.ValidateKept(value.KeptTuneItems);
         }
     }
     // Preferences contain usage answers and aggregate numbers, never commands or an apply plan.

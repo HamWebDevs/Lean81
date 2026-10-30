@@ -164,7 +164,7 @@ static partial class Tests
         if (args.Contains("--idle-fixture")) { if (Environment.GetEnvironmentVariable("LEAN81_NATIVE_FIXTURES") != "ephemeral-ci") return 3; Thread.Sleep(30000); return 0; }
         if (args.Length == 2 && args[0] == "--idle-service") { if (Environment.UserInteractive || !FixtureServiceName(args[1])) return 3; ServiceBaseRun(args[1]); return 0; }
         if (args.Contains("--resource-probe")) Test("x86 native resource layout and bounded capture", NativeResourceProbe);
-        else { MainCore(); FeatureTests(); ResourceTests(); DeepTests(); SessionTests(); if (args.Contains("--native")) Test("Windows native fixture suite", Native); }
+        else { MainCore(); FeatureTests(); ResourceTests(); DeepTests(); SessionTests(); SelectionTests(); if (args.Contains("--native")) Test("Windows native fixture suite", Native); }
         Console.WriteLine(passed + " passed, " + failed + " failed"); return failed == 0 ? 0 : 1;
     }
 }
