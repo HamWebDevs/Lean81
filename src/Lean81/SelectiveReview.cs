@@ -109,8 +109,11 @@ namespace Lean81
                     {
                         timer.Tick += (s, e) =>
                         {
-                            timer.Stop(); if (force.Checked || !readings.Checked) throw new InvalidOperationException("Review defaults changed.");
+                            timer.Stop(); if (force.Checked || !readings.Checked) throw new InvalidOperationException("Review defaults changed."); CheckTables(dialog);
                             using (var image = new Bitmap(dialog.Width, dialog.Height)) { dialog.DrawToBitmap(image, new Rectangle(Point.Empty, dialog.Size)); image.Save(Path.Combine(Path.GetDirectoryName(screenshot), "deep-review-settings.png"), System.Drawing.Imaging.ImageFormat.Png); }
+                            dialog.ClientSize = new Size(760, 600); dialog.Refresh(); CheckTables(dialog);
+                            using (var image = new Bitmap(dialog.Width, dialog.Height)) { dialog.DrawToBitmap(image, new Rectangle(Point.Empty, dialog.Size)); image.Save(Path.Combine(Path.GetDirectoryName(screenshot), "deep-review-settings-small.png"), System.Drawing.Imaging.ImageFormat.Png); }
+                            dialog.ClientSize = new Size(880, 650);
                             var provider = settingGrid.Rows.Cast<DataGridViewRow>().FirstOrDefault(r => ((ScanItem)r.Tag).Before.Kind == "service" && ((ScanItem)r.Tag).Before.Dependents.Length != 0);
                             if (provider != null)
                             {
@@ -123,7 +126,7 @@ namespace Lean81
                             tabs.SelectedTab = appsTab; dialog.Refresh();
                             using (var image = new Bitmap(dialog.Width, dialog.Height)) { dialog.DrawToBitmap(image, new Rectangle(Point.Empty, dialog.Size)); image.Save(screenshot, System.Drawing.Imaging.ImageFormat.Png); }
                             if (grid.Rows.Count != 0) { force.Checked = true; keepAll.PerformClick(); if (force.Checked || force.Enabled) throw new InvalidOperationException("Keeping apps left force close enabled."); }
-                            keepSettings.PerformClick(); if (apply.Text != "Save keep list") throw new InvalidOperationException("The preference-only action is missing.");
+                            tabs.SelectedTab = settingsTab; keepSettings.PerformClick(); if (apply.Text != "Save keep list") throw new InvalidOperationException("The preference-only action is missing.");
                             dialog.DialogResult = DialogResult.Cancel;
                         };
                         dialog.Shown += (s, e) => timer.Start();
